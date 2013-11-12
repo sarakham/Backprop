@@ -60,7 +60,7 @@ public class NeuralNet extends SupervisedLearner	{
 	
 	
 	/*
-	 * Generates the weights for a 
+	 * Generates the weights for a layer
 	 */
 	private void genLayerWeights(int layerIndex)	{
 		
