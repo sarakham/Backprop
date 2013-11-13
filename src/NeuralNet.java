@@ -1,5 +1,3 @@
-import java.math.RoundingMode;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -26,9 +24,9 @@ public class NeuralNet extends SupervisedLearner	{
 		
 		createNetwork(numInputNodes, numOutputNodes);
 		intializeNetworkWeights();
+		setLayerValues(1);
+		
 	}
-
-
 	
 	/*
 	 * Sets the weights for all connections in this fully-connected network
@@ -69,9 +67,14 @@ public class NeuralNet extends SupervisedLearner	{
 		for (Double w : weights)	{
 			w -= average;
 		}
+//		System.out.println("Average: " + average);
 		
-		System.out.println("Weights adjusted: " + weights);
-		System.out.println("Average: " + average);
+		//assign the weights
+		for (BPNode node : curLayer)	{
+			for(int i = 0; i < prevLayer.size(); i++)	{
+				node.weights.add(weights.remove(0));
+			}
+		}
 	}
 
 	/*
@@ -81,61 +84,25 @@ public class NeuralNet extends SupervisedLearner	{
 	 */
 	private void setLayerValues(int j)	{
 		
-		if(j == 0)	{
-			//the values of this layer will be the values of the attributes
-			//from the .arff file
-		}
-		else	{
-			ArrayList<BPNode> layer_I = layers.get(j-1);
-			ArrayList<BPNode> layer_J = layers.get(j);
+		if(j != 0)	{
+			ArrayList<BPNode> layer_i = layers.get(j-1);
+			ArrayList<BPNode> layer_j = layers.get(j);
 			
-			int iNodeCount = layer_I.size();
-			int jNodeCount = layer_J.size();
-			double value = 0.0;
-			
-			//loop through the nodes of layer j
-			for(int node = 0; node < jNodeCount; node++)	{
-				//loop through each node of layer i
-				//	multiply the value of each node with the corresponding weight
+			double totalValue = 0.0;
+			for(int j_count = 0; j_count < layer_j.size(); j_count++)	{
+				ArrayList<Double> node_weights = layer_j.get(j_count).weights;
+				//calculate sum of weights * values from layer i
+				for(int i_count = 0; i_count < layer_i.size(); i_count++)	{
+					double curNodeVal = layer_i.get(i_count).value * node_weights.get(i_count);
+					layer_j.get(j_count).value = curNodeVal;
+					totalValue += curNodeVal;
+				}
+//				System.out.println("weights for node j: " + j_count + " " + layer_j.get(j_count));
+				System.out.println("\n\tValue: " + totalValue);
 			}
+			System.out.println("Total value for layer: " + totalValue);
 		}
 	}
-
-	/*
-	 *  Given layers i and j, this method 
-	 */
-	private void doSomething(int i)	{
-		
-		
-	}
-	
-	/*
-	 * Calculates values of the nodes during forward propagation
-	 */
-	private void forwardPropagate()	{
-		
-		for(int i = 1; i < layers.size(); i++)	//layers	
-		{	
-			for(int j = 0; j < layers.get(i).size(); j++)	//nodes 	
-			{	
-				System.out.println("\ni: " + i + " j: " + j);
-				
-				double value = 0.0;
-				ArrayList<BPNode> prev_layer = layers.get(i-1);
-				System.out.println("prev_layer: " + prev_layer.toString());
-				
-//					for(int k = 0; k < prev_layer.size(); k++)
-//					{	//each node connected in previous layer
-//						//add products of weights * values 
-//						assert(prev_layer.size() == layers.get(i).get(j).inputWeights.size());
-//						System.out.println("prev weight: " + k + " is: " + prev_layer.get(k));
-//					}
-			}
-		}
-	}
-	
-
-	
 	
 	
 	// Create the network of nodes
@@ -229,7 +196,7 @@ public class NeuralNet extends SupervisedLearner	{
 	 * TEST - create a distribution with a mean of 0
 	 */
 	public void createMean()	{
-		ArrayList<Double> weights = new ArrayList<>();
+		ArrayList<Double> weights = new ArrayList<Double>();
 		
 		for(int i = 0; i < 6; i++)	{
 			weights.add(rand.nextGaussian());

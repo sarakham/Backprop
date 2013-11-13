@@ -1,0 +1,2 @@
+1. test if forward propagation is working
+2. get the input nodes to be set to the values from the attributes in features matrix
