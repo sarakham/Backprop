@@ -5,26 +5,44 @@ public class NeuralNet extends SupervisedLearner	{
 
 	Random rand;
 	ArrayList<ArrayList<BPNode>> layers;
+	ArrayList<Double> inputNodeValues;			//the values of the attributes
+	double targetClassification;				//what the instance should have been classified
 	int HIDDENLAYERCOUNT = 2;
 	int NODESPERLAYER = 3;
 	double LEARNINGRATE = 3.0;
 	
-	// Constructor
+	/*
+	 *  Constructor
+	 */
 	public NeuralNet(Random rand)	{
 		this.rand = rand;
 		layers = new ArrayList<ArrayList<BPNode>>();
+		inputNodeValues = new ArrayList<Double>();
+		targetClassification = -1;	//one set, this will change to a positive value
 	}
 	
 	@Override
 	public void train(Matrix features, Matrix labels) throws Exception {
 		
 		// create the network of nodes
+		int numInstances = features.rows();
 		int numInputNodes = features.cols();
 		int numOutputNodes = labels.getUniqueValues(0);
-		
-		createNetwork(numInputNodes, numOutputNodes);
-		intializeNetworkWeights();
-		setLayerValues(1);
+
+		//TODO wrap this in a loop to get all the instances
+//		for(int instance = 0; instance < numInstances; instance++)	{
+			//get values of input nodes 
+			double[] d = features.row(0);
+			for (int i = 0; i < d.length; i++){
+				inputNodeValues.add(i, d[i]);
+			}
+			
+			targetClassification = labels.get(0, 0);	//TODO first 0 should be 'instance'
+
+			createNetwork(numInputNodes, numOutputNodes);
+			intializeNetworkWeights();
+			setLayerValues(1);
+//		}
 		
 	}
 	
@@ -64,10 +82,12 @@ public class NeuralNet extends SupervisedLearner	{
 		average /= weights.size();
 		
 		//adjust to get a mean of 0
-		for (Double w : weights)	{
-			w -= average;
+		for(int i = 0; i < weights.size(); i++)	{
+			double temp = weights.get(i);
+			temp = average - temp;
+			weights.set(i, temp);
 		}
-//		System.out.println("Average: " + average);
+		System.out.println("Average: " + average);
 		
 		//assign the weights
 		for (BPNode node : curLayer)	{
@@ -78,9 +98,11 @@ public class NeuralNet extends SupervisedLearner	{
 	}
 
 	/*
-	 * Calculate the values of each node in a layer called j
-	 * This multiplies the values of the nodes in layer i with 
-	 * their weights leading to the node in layer j
+	 * Calculate the values of each node in a layer called j by
+	 * multiplying the values of the nodes in layer i with 
+	 * their weights between nodes in layer i and j
+	 * 
+	 * Forward propagation
 	 */
 	private void setLayerValues(int j)	{
 		
@@ -192,37 +214,35 @@ public class NeuralNet extends SupervisedLearner	{
 //		}
 //	}
 	
-	/*
-	 * TEST - create a distribution with a mean of 0
-	 */
-	public void createMean()	{
-		ArrayList<Double> weights = new ArrayList<Double>();
-		
-		for(int i = 0; i < 6; i++)	{
-			weights.add(rand.nextGaussian());
-		}
-		
-		double sum = 0.0;
-		for(Double d : weights)
-			sum += d;
-		double mean = sum/weights.size();
-		
-		System.out.println("weights: " + weights);
-		System.out.println("mean 1: " + mean);
-		
-		for(Double d : weights)
-			d = d - mean;
-		
-		sum = 0.0;
-		for(Double d : weights)
-			sum += d;
-		mean = sum/weights.size();
-
-		System.out.println("weights: " + weights);
-		System.out.println("mean 1: " + mean);
-		System.out.println("Done");
-	}
-	
-	
+//	/*
+//	 * TEST - create a distribution with a mean of 0
+//	 */
+//	public void createMean()	{
+//		ArrayList<Double> weights = new ArrayList<Double>();
+//		
+//		for(int i = 0; i < 6; i++)	{
+//			weights.add(rand.nextGaussian());
+//		}
+//		
+//		double sum = 0.0;
+//		for(Double d : weights)
+//			sum += d;
+//		double mean = sum/weights.size();
+//		
+//		System.out.println("weights: " + weights);
+//		System.out.println("mean 1: " + mean);
+//		
+//		for(Double d : weights)
+//			d = d - mean;
+//		
+//		sum = 0.0;
+//		for(Double d : weights)
+//			sum += d;
+//		mean = sum/weights.size();
+//
+//		System.out.println("weights: " + weights);
+//		System.out.println("mean 1: " + mean);
+//		System.out.println("Done");
+//	}
 }
 
