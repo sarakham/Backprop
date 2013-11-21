@@ -41,7 +41,13 @@ public class NeuralNet extends SupervisedLearner	{
 
 			createNetwork(numInputNodes, numOutputNodes);
 			intializeNetworkWeights();
-			setLayerValues(1);
+			
+			for(int layerCount = 0; layerCount < layers.size(); layerCount++)	{
+				System.out.println("------------------\nLAYER: " + layerCount + "\n------------------");
+				forwardPropagate(layerCount);
+			}
+			
+			System.out.println("Pause to check answers");
 //		}
 		
 	}
@@ -97,6 +103,7 @@ public class NeuralNet extends SupervisedLearner	{
 		}
 	}
 
+	
 	/*
 	 * Calculate the values of each node in a layer called j by
 	 * multiplying the values of the nodes in layer i with 
@@ -104,25 +111,42 @@ public class NeuralNet extends SupervisedLearner	{
 	 * 
 	 * Forward propagation
 	 */
-	private void setLayerValues(int j)	{
-		
-		if(j != 0)	{
-			ArrayList<BPNode> layer_i = layers.get(j-1);
+	private void forwardPropagate(int j)	{
+		if(j == 0)	{			// set the value of the input nodes 
 			ArrayList<BPNode> layer_j = layers.get(j);
 			
-			double totalValue = 0.0;
-			for(int j_count = 0; j_count < layer_j.size(); j_count++)	{
-				ArrayList<Double> node_weights = layer_j.get(j_count).weights;
-				//calculate sum of weights * values from layer i
-				for(int i_count = 0; i_count < layer_i.size(); i_count++)	{
-					double curNodeVal = layer_i.get(i_count).value * node_weights.get(i_count);
-					layer_j.get(j_count).value = curNodeVal;
-					totalValue += curNodeVal;
+			for(int n = 0; n < layer_j.size(); n++)	  {
+				layer_j.get(n).value = inputNodeValues.get(n);
+			}
+			System.out.println("layer_j" + layer_j);
+		}
+		else if(j != 0)	 {		//hidden layers
+			ArrayList<BPNode> layer_i = layers.get(j-1);
+			ArrayList<BPNode> layer_j = layers.get(j);
+	
+			//calc value of nodes in hidden layers
+			for(int j_node = 0; j_node < layer_j.size(); j_node++)	{
+				double nodeValue = 0.0;
+				ArrayList<Double> ij_weights = layer_j.get(j_node).weights;
+
+				//sum of weights * i_node values
+				for(int i_node = 0; i_node < layer_i.size(); i_node++)	{	
+					double curNodeVal = layer_i.get(i_node).value * ij_weights.get(i_node);
+					System.out.println("CurNodeValue (product of val and weight): " + curNodeVal);
+					layer_j.get(j_node).value = curNodeVal;
+					nodeValue += curNodeVal;
 				}
 //				System.out.println("weights for node j: " + j_count + " " + layer_j.get(j_count));
-				System.out.println("\n\tValue: " + totalValue);
+				System.out.println("\n\tValue before sigmoid: " + nodeValue);
+				
+				//compute the sigmoid
+				nodeValue = 1/(1+Math.exp(-nodeValue));
+				
+				//update the value of the original node
+				layers.get(j).get(j_node).value = nodeValue;
+				
+				System.out.println("\tNode value after sigmoid: " + nodeValue + "\n");
 			}
-			System.out.println("Total value for layer: " + totalValue);
 		}
 	}
 	
