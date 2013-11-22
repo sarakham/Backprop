@@ -7,9 +7,11 @@ public class NeuralNet extends SupervisedLearner	{
 	ArrayList<ArrayList<BPNode>> layers;
 	ArrayList<Double> inputNodeValues;			//the values of the attributes
 	double targetClassification;				//what the instance should have been classified
+	int INPUT_LAYER_INDEX = 0;
 	int HIDDENLAYERCOUNT = 2;
 	int NODESPERLAYER = 3;
 	double LEARNINGRATE = 3.0;
+	double MOMENTUM = 1.0;
 	
 	/*
 	 *  Constructor
@@ -21,36 +23,52 @@ public class NeuralNet extends SupervisedLearner	{
 		targetClassification = -1;	//one set, this will change to a positive value
 	}
 	
+	
 	@Override
 	public void train(Matrix features, Matrix labels) throws Exception {
 		
-		// create the network of nodes
+	// create the network of nodes
 		int numInstances = features.rows();
 		int numInputNodes = features.cols();
 		int numOutputNodes = labels.getUniqueValues(0);
-
-		//TODO wrap this in a loop to get all the instances
-//		for(int instance = 0; instance < numInstances; instance++)	{
-			//get values of input nodes 
-			double[] d = features.row(0);
-			for (int i = 0; i < d.length; i++){
-				inputNodeValues.add(i, d[i]);
-			}
-			
-			targetClassification = labels.get(0, 0);	//TODO first 0 should be 'instance'
+		
+	// get all the instances - input values come from the instance
+//		for(int instance = 0; instance < numInstances; instance++)	{	//TODO get all instances
+			int instance = 0;
+			setInputNodeValues(features);
+			targetClassification = labels.get(instance, 0);
 
 			createNetwork(numInputNodes, numOutputNodes);
 			intializeNetworkWeights();
 			
+			// Pass forward through network, calculating value of each node
 			for(int layerCount = 0; layerCount < layers.size(); layerCount++)	{
 				System.out.println("------------------\nLAYER: " + layerCount + "\n------------------");
-				forwardPropagate(layerCount);
+				passforward(layerCount);
 			}
+			
+			int prediction = computePrediction();
+			
+			//calculate the error of the output nodes
+			computeError(layers.size()-1);
 			
 			System.out.println("Pause to check answers");
 //		}
 		
 	}
+
+	
+	/*
+	 * Sets the values of the input nodes to the values of the features
+	 * for the instance
+	 */
+	private void setInputNodeValues(Matrix features) {
+		double[] d = features.row(INPUT_LAYER_INDEX);
+		for (int i = 0; i < d.length; i++)	{
+			inputNodeValues.add(i, d[i]);
+		}
+	}
+	
 	
 	/*
 	 * Sets the weights for all connections in this fully-connected network
@@ -64,6 +82,7 @@ public class NeuralNet extends SupervisedLearner	{
 				genLayerWeights(i);
 		}
 	}
+	
 	
 	/*
 	 * Generates the weights for a layer
@@ -105,13 +124,30 @@ public class NeuralNet extends SupervisedLearner	{
 
 	
 	/*
+	 * Picks the highest value output node
+	 */
+	private int computePrediction()	{
+		ArrayList<BPNode> outputNodes = layers.get(layers.size()-1);
+		double maxValue = -1;
+		int maxIndex = -1;
+		for(int index = 0; index < outputNodes.size(); index++)	{
+			if(outputNodes.get(index).value > maxValue)	{
+				maxIndex = index;
+				maxValue = outputNodes.get(index).value;
+			}
+		}
+		return maxIndex;
+	}
+	
+	
+	/*
 	 * Calculate the values of each node in a layer called j by
 	 * multiplying the values of the nodes in layer i with 
 	 * their weights between nodes in layer i and j
 	 * 
 	 * Forward propagation
 	 */
-	private void forwardPropagate(int j)	{
+	private void passforward(int j)	{
 		if(j == 0)	{			// set the value of the input nodes 
 			ArrayList<BPNode> layer_j = layers.get(j);
 			
@@ -140,7 +176,7 @@ public class NeuralNet extends SupervisedLearner	{
 				System.out.println("\n\tValue before sigmoid: " + nodeValue);
 				
 				//compute the sigmoid
-				nodeValue = 1/(1+Math.exp(-nodeValue));
+				nodeValue = sigmoid(nodeValue);
 				
 				//update the value of the original node
 				layers.get(j).get(j_node).value = nodeValue;
@@ -149,9 +185,55 @@ public class NeuralNet extends SupervisedLearner	{
 			}
 		}
 	}
+
+	
+	/*
+	 * Computes the error of the nodes in the layer
+	 */
+	private void computeError(int layer)	{
+
+		// output layer  
+		if(layer == layers.size()-1)	{
+			ArrayList<BPNode> layerj = layers.get(layer - 1);
+			ArrayList<BPNode> layerk = layers.get(layer);
+			
+			//get the previous layer's activation values
+			for(int node = 0; node < layerk.size(); node++)		{
+				// weight_jk * value_j
+				double value = 0.0;
+				for(int weight = 0; weight < layerk.get(node).weights.size(); weight++)		{
+					value += layerj.get(weight).value * layerk.get(node).weights.get(weight); 
+				}
+				System.out.println("Node: " + node + " weight= " + value);
+				double error = dxSigmoid(value) * (computePrediction() - targetClassification);
+				layers.get(layer).get(node).error = error;
+			}
+		}
+		else	{	// hidden layer
+			
+		}
+	}
 	
 	
-	// Create the network of nodes
+	/*
+	 * Computes the sigmoid function
+	 */
+	private double sigmoid(double x)	{
+		return 1/(1+Math.exp(-x));
+	}
+	
+	
+	/*
+	 * Computes the derivative of the sigmoid function
+	 */
+	private double dxSigmoid(double x) 	{
+		return Math.exp(x)/Math.pow((Math.exp(x) + 1), 2);
+	}
+	
+	
+	/*
+	 *  Create the network of nodes
+	 */
 	private void createNetwork(int numInputNodes, int numOutputNodes)	{
 		
 		// Input Nodes - as many as there are attributes
@@ -184,89 +266,5 @@ public class NeuralNet extends SupervisedLearner	{
 		
 	}
 	
-	
-	
-	
-	//------------------------------------- dead code ----------------------------------------------
-//	/*
-//	 * Sets the weights for all connections in this fully-connected network
-//	 * 	Input nodes receive no weight
-//	 */
-//	private void intializeNetworkWeights() {
-//
-//		for(int i = 0; i < layers.size(); i++)	//layers	
-//		{	
-//			for(int j = 0; j < layers.get(i).size(); j++)	//layer's nodes 	
-//			{	
-////				System.out.println("i: " + i + " j: " + j);
-//				if(i != 0)	// if hidden or output node, one weight for each	
-//				{ 	
-//					int prevLayerSize = layers.get(i-1).size(); 
-//					for(int k = 0; k < prevLayerSize; k++)	//each node in previous layer	
-//					{	
-//						double weight = rand.nextGaussian();
-//						layers.get(i).get(j).inputWeights.add(weight);
-////						System.out.println("weight: " + weight);
-//					}
-//				} 
-//			}
-//		}
-//	}
-
-//	/*
-//	 * Sets the weights for all connections in this fully-connected network
-//	 * 	Input nodes receive no weight
-//	 */
-//	private void intializeNetworkWeights() {
-//
-//		for(int i = 0; i < layers.size(); i++)	
-//		{	//layers
-//			for(int j = 0; j < layers.get(i).size(); j++) 	
-//			{	//layer's nodes
-////				System.out.println("i: " + i + " j: " + j);
-//				if(i != 0)	
-//				{ 	// if hidden or output node, one weight for each
-//					int prevLayerSize = layers.get(i-1).size(); 
-//					for(int k = 0; k < prevLayerSize; k++)	
-//					{	//each node in previous layer
-//						double weight = rand.nextGaussian();
-//						layers.get(i).get(j).inputWeights.add(weight);
-////						System.out.println("weight: " + weight);
-//					}
-//				} 
-//			}
-//		}
-//	}
-	
-//	/*
-//	 * TEST - create a distribution with a mean of 0
-//	 */
-//	public void createMean()	{
-//		ArrayList<Double> weights = new ArrayList<Double>();
-//		
-//		for(int i = 0; i < 6; i++)	{
-//			weights.add(rand.nextGaussian());
-//		}
-//		
-//		double sum = 0.0;
-//		for(Double d : weights)
-//			sum += d;
-//		double mean = sum/weights.size();
-//		
-//		System.out.println("weights: " + weights);
-//		System.out.println("mean 1: " + mean);
-//		
-//		for(Double d : weights)
-//			d = d - mean;
-//		
-//		sum = 0.0;
-//		for(Double d : weights)
-//			sum += d;
-//		mean = sum/weights.size();
-//
-//		System.out.println("weights: " + weights);
-//		System.out.println("mean 1: " + mean);
-//		System.out.println("Done");
-//	}
 }
 

@@ -7,6 +7,7 @@ public class BPNode {
 	public ArrayList<Double> weights;
 	public ArrayList<Double> weightChanges;
 	public double value;
+	public double error;
 	String type;
 	
 	public BPNode(String type)	{
