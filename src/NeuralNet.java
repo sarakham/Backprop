@@ -34,9 +34,9 @@ public class NeuralNet extends SupervisedLearner	{
 		int numOutputNodes = labels.getUniqueValues(0);	//HACK won't work if not all classifications are seen
 		
 	// get all the instances - input values come from the instance
-//		for(int instance = 0; instance < numInstances; instance++)	{	//TODO get all instances
-			int instance = 0;
-			setInputNodeValues(features);
+		for(int instance = 0; instance < 1 /*numInstances*/; instance++)	{
+			// TODO generate a random instance number
+			setInputNodeValues(features, instance);
 			setTargets(numOutputNodes, (int)labels.get(instance, 0));
 
 			createNetwork(numInputNodes, numOutputNodes);
@@ -48,13 +48,21 @@ public class NeuralNet extends SupervisedLearner	{
 				passforward(layerCount);
 			}
 			
-			int prediction = computePrediction();
+//			int prediction = computePrediction();
 			
 			//calculate the error of the output nodes
-			computeError(layers.size()-2);
+			for (int layer = layers.size()-1; layer >= 0; layer--)		{
+				computeError(layer);
+			}
 			
+			//update the weights
+			for (int layer = layers.size()-1; layer >= 0; layer--)		{
+				updateWeights(layer);
+			}
+			
+			// TODO update the weights for the network
 			System.out.println("Pause to check answers");
-//		}
+		}
 		
 	}
 
@@ -77,13 +85,13 @@ public class NeuralNet extends SupervisedLearner	{
 		}
 	}
 	
+	
 	/*
 	 * Sets the values of the input nodes to the values of the features
 	 * for the instance
 	 */
-	// TODO make this take in an arbitrary instance and add the values
-	private void setInputNodeValues(Matrix features) {
-		double[] d = features.row(INPUT_LAYER_INDEX);
+	private void setInputNodeValues(Matrix features, int instance) {
+		double[] d = features.row(instance);
 		for (int i = 0; i < d.length; i++)	{
 			inputNodeValues.add(i, d[i]);
 		}
@@ -162,6 +170,25 @@ public class NeuralNet extends SupervisedLearner	{
 	
 	
 	/*
+	 * Update the weights between layers based upon the stored 
+	 * weight changes
+	 */
+	private void updateWeights(int layer)	{
+		int nodeCount = layers.get(layer).size();
+		
+		for(int node = 0; node < nodeCount; node++)	{
+			int weightCount = layers.get(layer).get(node).weights.size();
+			for(int w = 0; w < weightCount; w++)	{	//loop through the weights
+				double weightChange = layers.get(layer).get(node).weightChanges.get(w); 
+				double weight = layers.get(layer).get(node).weights.get(w);
+				double updatedWeight = weight + weightChange;
+				//update the weight
+				layers.get(layer).get(node).weights.set(w, updatedWeight);
+			}
+		}
+	}
+	
+	/*
 	 * Calculate the values of each node in a layer called j by
 	 * multiplying the values of the nodes in layer i with 
 	 * their weights between nodes in layer i and j
@@ -211,13 +238,11 @@ public class NeuralNet extends SupervisedLearner	{
 	/*
 	 * Computes the error of the nodes in the layer
 	 */
-	private void computeError(int layer_j)	{
-		ArrayList<BPNode> layeri = layers.get(layer_j - 1);
-		ArrayList<BPNode> layerj = layers.get(layer_j);
-		ArrayList<BPNode> layerk = layers.get(layer_j + 1);
+	private void computeError(int layer)	{
 
-		//TODO fix the target value system	
-		if(layer_j == layers.size()-2)	{	//output nodes
+		if(layer == layers.size()-1)	{	//output nodes
+			ArrayList<BPNode> layerj = layers.get(layer - 1);
+			ArrayList<BPNode> layerk = layers.get(layer);
 			
 			// (T_k - O_k)*f'(net_k)
 			for (int k = 0; k < layerk.size(); k++)	{
@@ -225,46 +250,48 @@ public class NeuralNet extends SupervisedLearner	{
 				double outputK = layerk.get(k).value;
 				double f_prime_net_k = outputK * (1 - outputK);
 				
+				// store error
 				double errorK = (targetValue - outputK) * f_prime_net_k;
-				//TODO weight change for output nodes
+				layers.get(layer).get(k).error = errorK;
 				
+				// change in weight 
 				for(int j = 0; j < layerj.size(); j++)	{
 					double output_j = layerj.get(j).value;
 					double weight_change_jk = LEARNING_RATE * output_j * errorK;
 					//store the weight change
-					layers.get(layer_j + 1).get(k).weightChanges.set(j, weight_change_jk);
+					layers.get(layer).get(k).weightChanges.set(j, weight_change_jk);
 				}
 			}
 		}
-		else if (layer_j > 0)	{	// hidden layers
-			double layerk_error = 0.0;
-			double layerj_error = 0.0;
-			double v1 = 0.0;	//weights_jk * errors_k
-			double netj = 0.0;	//weights_ij * values_i
-			
-			// REMOVE - set some test errors
-			int count = 0;
-			for (BPNode n : layerk)	{
-				n.error += .2 * count;
-				count += 1.5;
-			}
+		else if (layer > 0)	{	// hidden layers
+			ArrayList<BPNode> layeri = layers.get(layer - 1);
+			ArrayList<BPNode> layerj = layers.get(layer);
+			ArrayList<BPNode> layerk = layers.get(layer + 1);
 			
 			// weights_jk * errors_k
-			for (int j = 0; j < layerj.size(); j++)	{		//layer j nodes
-				for (int k = 0; k < layerj.size(); k++)	{	//layer k nodes	
-					double weight = layerk.get(k).weights.get(j);
-					double error = layerk.get(k).error;
-					layerk_error += error;
-					v1 += weight * error;
+			for (int j = 0; j < layerj.size(); j++)	{
+				
+				double error_layerk = 0.0;	//weights_jk * errors_k
+				double outputJ = layerj.get(j).value;
+				double f_prime_net_j = outputJ * (1 - outputJ);
+				
+				// store error
+				for (int k = 0; k < layerj.size(); k++)	{		
+					double weight_jk = layerk.get(k).weights.get(j);
+					double errorK = layerk.get(k).error;
+					error_layerk += weight_jk * errorK;
+				}
+				double error_j = error_layerk * f_prime_net_j;  
+				layers.get(layer).get(j).error = error_j;
+				
+				// weight change
+				for (int i = 0; i < layeri.size(); i++)	{
+					double output_i = layeri.get(i).value;
+					double weight_change_ij = LEARNING_RATE * output_i * error_j;
+					//store the weight change
+					layers.get(layer).get(j).weightChanges.set(i, weight_change_ij);
 				}
 			}
-			
-			//net_j
-			
-			
-			System.out.println("Layer K error: " + layerk_error);
-			System.out.println("V1: " + v1);
-			System.out.println("Netj: " + netj);
 		}
 	}
 	
@@ -274,14 +301,6 @@ public class NeuralNet extends SupervisedLearner	{
 	 */
 	private double sigmoid(double x)	{
 		return 1/(1+Math.exp(-x));
-	}
-	
-	
-	/*
-	 * Computes the derivative of the sigmoid function
-	 */
-	private double dxSigmoid(double x) 	{
-		return Math.exp(x)/Math.pow((Math.exp(x) + 1), 2);
 	}
 	
 	
@@ -319,6 +338,14 @@ public class NeuralNet extends SupervisedLearner	{
 		// TODO Auto-generated method stub
 		
 	}
+
+	//------------------------------------- Dead Code ------------------------------------------------
+//	/*
+//	 * Computes the derivative of the sigmoid function
+//	 */
+//	private double dxSigmoid(double x) 	{
+//		return Math.exp(x)/Math.pow((Math.exp(x) + 1), 2);
+//	}
 	
 }
 
