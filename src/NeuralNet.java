@@ -1,3 +1,4 @@
+import java.security.acl.LastOwnerException;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -6,11 +7,11 @@ public class NeuralNet extends SupervisedLearner	{
 	Random rand;
 	ArrayList<ArrayList<BPNode>> layers;
 	ArrayList<Double> inputNodeValues;			//the values of the attributes
-	double targetClassification;				//what the instance should have been classified
+	ArrayList<Integer> targets;				//what the instance should have been classified
 	int INPUT_LAYER_INDEX = 0;
 	int HIDDENLAYERCOUNT = 2;
 	int NODESPERLAYER = 3;
-	double LEARNINGRATE = 3.0;
+	double LEARNING_RATE = 1.0;
 	double MOMENTUM = 1.0;
 	
 	/*
@@ -20,7 +21,7 @@ public class NeuralNet extends SupervisedLearner	{
 		this.rand = rand;
 		layers = new ArrayList<ArrayList<BPNode>>();
 		inputNodeValues = new ArrayList<Double>();
-		targetClassification = -1;	//one set, this will change to a positive value
+		targets = new ArrayList<Integer>();
 	}
 	
 	
@@ -30,18 +31,18 @@ public class NeuralNet extends SupervisedLearner	{
 	// create the network of nodes
 		int numInstances = features.rows();
 		int numInputNodes = features.cols();
-		int numOutputNodes = labels.getUniqueValues(0);
+		int numOutputNodes = labels.getUniqueValues(0);	//HACK won't work if not all classifications are seen
 		
 	// get all the instances - input values come from the instance
 //		for(int instance = 0; instance < numInstances; instance++)	{	//TODO get all instances
 			int instance = 0;
 			setInputNodeValues(features);
-			targetClassification = labels.get(instance, 0);
+			setTargets(numOutputNodes, (int)labels.get(instance, 0));
 
 			createNetwork(numInputNodes, numOutputNodes);
 			intializeNetworkWeights();
 			
-			// Pass forward through network, calculating value of each node
+			// Pass forward through network, calculating value of each node in each layer
 			for(int layerCount = 0; layerCount < layers.size(); layerCount++)	{
 				System.out.println("------------------\nLAYER: " + layerCount + "\n------------------");
 				passforward(layerCount);
@@ -50,7 +51,7 @@ public class NeuralNet extends SupervisedLearner	{
 			int prediction = computePrediction();
 			
 			//calculate the error of the output nodes
-			computeError(layers.size()-1);
+			computeError(layers.size()-2);
 			
 			System.out.println("Pause to check answers");
 //		}
@@ -59,9 +60,28 @@ public class NeuralNet extends SupervisedLearner	{
 
 	
 	/*
+	 * Sets an arrayList with a 1 where the prediction should have
+	 * occurred and 0s everywhere else
+	 */
+	private void setTargets(int numClassifications, int targetValue)	{
+
+		// targetValue is the index into the classifications ArrayList where
+		// the correct classification is
+		for (int i = 0; i < numClassifications; i++)	{
+			if(i == targetValue) {
+				targets.add(i, 1);
+			}
+			else	{
+				targets.add(i, 0);
+			}
+		}
+	}
+	
+	/*
 	 * Sets the values of the input nodes to the values of the features
 	 * for the instance
 	 */
+	// TODO make this take in an arbitrary instance and add the values
 	private void setInputNodeValues(Matrix features) {
 		double[] d = features.row(INPUT_LAYER_INDEX);
 		for (int i = 0; i < d.length; i++)	{
@@ -118,13 +138,14 @@ public class NeuralNet extends SupervisedLearner	{
 		for (BPNode node : curLayer)	{
 			for(int i = 0; i < prevLayer.size(); i++)	{
 				node.weights.add(weights.remove(0));
+				node.weightChanges.add(0.0);		//initialize weightChanges 
 			}
 		}
 	}
 
 	
 	/*
-	 * Picks the highest value output node
+	 * Picks the highest value output node and returns its index in layers
 	 */
 	private int computePrediction()	{
 		ArrayList<BPNode> outputNodes = layers.get(layers.size()-1);
@@ -190,27 +211,60 @@ public class NeuralNet extends SupervisedLearner	{
 	/*
 	 * Computes the error of the nodes in the layer
 	 */
-	private void computeError(int layer)	{
+	private void computeError(int layer_j)	{
+		ArrayList<BPNode> layeri = layers.get(layer_j - 1);
+		ArrayList<BPNode> layerj = layers.get(layer_j);
+		ArrayList<BPNode> layerk = layers.get(layer_j + 1);
 
-		// output layer  
-		if(layer == layers.size()-1)	{
-			ArrayList<BPNode> layerj = layers.get(layer - 1);
-			ArrayList<BPNode> layerk = layers.get(layer);
+		//TODO fix the target value system	
+		if(layer_j == layers.size()-2)	{	//output nodes
 			
-			//get the previous layer's activation values
-			for(int node = 0; node < layerk.size(); node++)		{
-				// weight_jk * value_j
-				double value = 0.0;
-				for(int weight = 0; weight < layerk.get(node).weights.size(); weight++)		{
-					value += layerj.get(weight).value * layerk.get(node).weights.get(weight); 
+			// (T_k - O_k)*f'(net_k)
+			for (int k = 0; k < layerk.size(); k++)	{
+				int targetValue = targets.get(k);
+				double outputK = layerk.get(k).value;
+				double f_prime_net_k = outputK * (1 - outputK);
+				
+				double errorK = (targetValue - outputK) * f_prime_net_k;
+				//TODO weight change for output nodes
+				
+				for(int j = 0; j < layerj.size(); j++)	{
+					double output_j = layerj.get(j).value;
+					double weight_change_jk = LEARNING_RATE * output_j * errorK;
+					//store the weight change
+					layers.get(layer_j + 1).get(k).weightChanges.set(j, weight_change_jk);
 				}
-				System.out.println("Node: " + node + " weight= " + value);
-				double error = dxSigmoid(value) * (computePrediction() - targetClassification);
-				layers.get(layer).get(node).error = error;
 			}
 		}
-		else	{	// hidden layer
+		else if (layer_j > 0)	{	// hidden layers
+			double layerk_error = 0.0;
+			double layerj_error = 0.0;
+			double v1 = 0.0;	//weights_jk * errors_k
+			double netj = 0.0;	//weights_ij * values_i
 			
+			// REMOVE - set some test errors
+			int count = 0;
+			for (BPNode n : layerk)	{
+				n.error += .2 * count;
+				count += 1.5;
+			}
+			
+			// weights_jk * errors_k
+			for (int j = 0; j < layerj.size(); j++)	{		//layer j nodes
+				for (int k = 0; k < layerj.size(); k++)	{	//layer k nodes	
+					double weight = layerk.get(k).weights.get(j);
+					double error = layerk.get(k).error;
+					layerk_error += error;
+					v1 += weight * error;
+				}
+			}
+			
+			//net_j
+			
+			
+			System.out.println("Layer K error: " + layerk_error);
+			System.out.println("V1: " + v1);
+			System.out.println("Netj: " + netj);
 		}
 	}
 	
