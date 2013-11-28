@@ -32,16 +32,19 @@ public class NeuralNet extends SupervisedLearner	{
 		int numInstances = features.rows();
 		int numInputNodes = features.cols();
 		int numOutputNodes = labels.getUniqueValues(0);	//HACK won't work if not all classifications are seen
+
+	// initialize the network
+		createNetwork(numInputNodes, numOutputNodes);
+		intializeNetworkWeights();
 		
+	// TODO add outer loop here which is based on stopping criterion
+	ArrayList<Double> ave_errors = new ArrayList<Double>();
 	// get all the instances - input values come from the instance
-		for(int instance = 0; instance < 1 /*numInstances*/; instance++)	{
+		for(int instance = 0; instance < numInstances; instance++)	{
 			// TODO generate a random instance number
 			setInputNodeValues(features, instance);
 			setTargets(numOutputNodes, (int)labels.get(instance, 0));
 
-			createNetwork(numInputNodes, numOutputNodes);
-			intializeNetworkWeights();
-			
 			// Pass forward through network, calculating value of each node in each layer
 			for(int layerCount = 0; layerCount < layers.size(); layerCount++)	{
 				System.out.println("------------------\nLAYER: " + layerCount + "\n------------------");
@@ -50,21 +53,38 @@ public class NeuralNet extends SupervisedLearner	{
 			
 //			int prediction = computePrediction();
 			
-			//calculate the error of the output nodes
+			// calculate the error for each layer
 			for (int layer = layers.size()-1; layer >= 0; layer--)		{
 				computeError(layer);
 			}
 			
-			//update the weights
+			// update the weights
 			for (int layer = layers.size()-1; layer >= 0; layer--)		{
 				updateWeights(layer);
 			}
-			
 			System.out.println("Pause to check answers");
+			// get the average error on the output nodes
+			double average_output_err = getGeneralError();
+			ave_errors.add(instance, average_output_err);
 		}
-		
+		System.out.println("Pause.");
 	}
 
+	/*
+	 * Calculates the average error on the ouput nodes 
+	 */
+	private double getGeneralError()	{
+		int outputLayerIndex = layers.size()-1;
+		int nodeCount = layers.get(outputLayerIndex).size();
+		
+		double error_total = 0.0;
+		for(int node = 0; node < nodeCount; node++)	{
+			error_total += layers.get(outputLayerIndex).get(node).error;
+		}
+		error_total = error_total/nodeCount;	//average
+		return error_total;
+	}
+	
 	
 	/*
 	 * Sets an arrayList with a 1 where the prediction should have
@@ -236,6 +256,8 @@ public class NeuralNet extends SupervisedLearner	{
 	
 	/*
 	 * Computes the error of the nodes in the layer
+	 * //TODO add the momentum which will have to be calculated BEFORE 
+	 * updating the change in weights 	
 	 */
 	private void computeError(int layer)	{
 
@@ -337,14 +359,5 @@ public class NeuralNet extends SupervisedLearner	{
 		// TODO Auto-generated method stub
 		
 	}
-
-	//------------------------------------- Dead Code ------------------------------------------------
-//	/*
-//	 * Computes the derivative of the sigmoid function
-//	 */
-//	private double dxSigmoid(double x) 	{
-//		return Math.exp(x)/Math.pow((Math.exp(x) + 1), 2);
-//	}
-	
 }
 
