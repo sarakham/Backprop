@@ -60,7 +60,6 @@ public class NeuralNet extends SupervisedLearner	{
 				updateWeights(layer);
 			}
 			
-			// TODO update the weights for the network
 			System.out.println("Pause to check answers");
 		}
 		
