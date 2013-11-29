@@ -1,5 +1,6 @@
 import java.security.acl.LastOwnerException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 
 public class NeuralNet extends SupervisedLearner	{
@@ -11,7 +12,7 @@ public class NeuralNet extends SupervisedLearner	{
 	int INPUT_LAYER_INDEX = 0;
 	int HIDDENLAYERCOUNT = 2;
 	int NODESPERLAYER = 3;
-	double LEARNING_RATE = 1.0;
+	double LEARNING_RATE = 3.5;
 	double MOMENTUM = 1.0;
 	
 	/*
@@ -37,43 +38,71 @@ public class NeuralNet extends SupervisedLearner	{
 		createNetwork(numInputNodes, numOutputNodes);
 		intializeNetworkWeights();
 		
-	// TODO add outer loop here which is based on stopping criterion
-	ArrayList<Double> ave_errors = new ArrayList<Double>();
-	// get all the instances - input values come from the instance
-		for(int instance = 0; instance < numInstances; instance++)	{
-			// TODO generate a random instance number
-			setInputNodeValues(features, instance);
-			setTargets(numOutputNodes, (int)labels.get(instance, 0));
+		instanceOrder(features);
 
-			// Pass forward through network, calculating value of each node in each layer
-			for(int layerCount = 0; layerCount < layers.size(); layerCount++)	{
-				System.out.println("------------------\nLAYER: " + layerCount + "\n------------------");
-				passforward(layerCount);
+	ArrayList<Double> epoch = new ArrayList<Double>();
+	for(int i = 0; i < 1000; i++)	 {
+		ArrayList<Double> thisEpochErrors = new ArrayList<Double>();
+	
+		// get all the instances - input values come from the instance
+			ArrayList<Integer> instances = instanceOrder(features);
+			for(int instCount = 0; instCount < numInstances; instCount++)	{
+				
+				int instance = instances.get(instCount);	//get the next instance from the list
+				
+				setInputNodeValues(features, instance);
+				setTargets(numOutputNodes, (int)labels.get(instance, 0));
+	
+				// Pass forward through network, calculating value of each node in each layer
+				for(int layerCount = 0; layerCount < layers.size(); layerCount++)	{
+//					System.out.println("------------------\nLAYER: " + layerCount + "\n------------------");
+					passforward(layerCount);
+				}
+				
+				// calculate the error for each layer
+				for (int layer = layers.size()-1; layer >= 0; layer--)		{
+					computeError(layer);
+				}
+				
+				// update the weights
+				for (int layer = layers.size()-1; layer >= 0; layer--)		{
+					updateWeights(layer);
+				}
+				System.out.println("Pause to check answers");
+				
+				// get the average error on the output nodes
+				double average_output_err = calcAveErrorOnOutput();
+				thisEpochErrors.add(average_output_err);
 			}
-			
-//			int prediction = computePrediction();
-			
-			// calculate the error for each layer
-			for (int layer = layers.size()-1; layer >= 0; layer--)		{
-				computeError(layer);
-			}
-			
-			// update the weights
-			for (int layer = layers.size()-1; layer >= 0; layer--)		{
-				updateWeights(layer);
-			}
-			System.out.println("Pause to check answers");
-			// get the average error on the output nodes
-			double average_output_err = getGeneralError();
-			ave_errors.add(instance, average_output_err);
+			System.out.println("Pause at end of epoch: " + i);
+			double aveErrorAcrossInstances = calcErrorEpoch(thisEpochErrors);
+			epoch.add(aveErrorAcrossInstances);
 		}
-		System.out.println("Pause.");
+	
+		//print ave errors across all epochs
+		printAveError(epoch);
 	}
-
+	
+	
+	/*
+	 * Returns a random order of instances
+	 */
+	private ArrayList<Integer> instanceOrder(Matrix features)	{
+		
+		ArrayList<Integer> instanceOrder = new ArrayList<Integer>();
+		for (int i = 0; i < features.rows(); i++)	{
+			instanceOrder.add(i);
+		}
+		
+		Collections.shuffle(instanceOrder, new Random());
+		return instanceOrder;
+	}
+	
+	
 	/*
 	 * Calculates the average error on the ouput nodes 
 	 */
-	private double getGeneralError()	{
+	private double calcAveErrorOnOutput()	{
 		int outputLayerIndex = layers.size()-1;
 		int nodeCount = layers.get(outputLayerIndex).size();
 		
@@ -159,7 +188,7 @@ public class NeuralNet extends SupervisedLearner	{
 			temp = average - temp;
 			weights.set(i, temp);
 		}
-		System.out.println("Average: " + average);
+//		System.out.println("Average: " + average);
 		
 		//assign the weights
 		for (BPNode node : curLayer)	{
@@ -221,7 +250,7 @@ public class NeuralNet extends SupervisedLearner	{
 			for(int n = 0; n < layer_j.size(); n++)	  {
 				layer_j.get(n).value = inputNodeValues.get(n);
 			}
-			System.out.println("layer_j" + layer_j);
+//			System.out.println("layer_j" + layer_j);			//uncomment
 		}
 		else if(j != 0)	 {		//hidden layers
 			ArrayList<BPNode> layer_i = layers.get(j-1);
@@ -235,12 +264,12 @@ public class NeuralNet extends SupervisedLearner	{
 				//sum of weights * i_node values
 				for(int i_node = 0; i_node < layer_i.size(); i_node++)	{	
 					double curNodeVal = layer_i.get(i_node).value * ij_weights.get(i_node);
-					System.out.println("CurNodeValue (product of val and weight): " + curNodeVal);
+//					System.out.println("CurNodeValue (product of val and weight): " + curNodeVal);		//uncomment
 					layer_j.get(j_node).value = curNodeVal;
 					nodeValue += curNodeVal;
 				}
 //				System.out.println("weights for node j: " + j_count + " " + layer_j.get(j_count));
-				System.out.println("\n\tValue before sigmoid: " + nodeValue);
+//				System.out.println("\n\tValue before sigmoid: " + nodeValue);						//uncomment
 				
 				//compute the sigmoid
 				nodeValue = sigmoid(nodeValue);
@@ -248,7 +277,7 @@ public class NeuralNet extends SupervisedLearner	{
 				//update the value of the original node
 				layers.get(j).get(j_node).value = nodeValue;
 				
-				System.out.println("\tNode value after sigmoid: " + nodeValue + "\n");
+//				System.out.println("\tNode value after sigmoid: " + nodeValue + "\n");				//uncomment
 			}
 		}
 	}
@@ -324,6 +353,30 @@ public class NeuralNet extends SupervisedLearner	{
 		return 1/(1+Math.exp(-x));
 	}
 	
+	
+	/*
+	 * Calculates the average error of an epoch
+	 */
+	private double calcErrorEpoch(ArrayList<Double> errors)	{
+		double aveError = 0.0;
+		for(int i = 0; i < errors.size(); i++)	{
+			aveError += errors.get(i);
+		}
+		aveError = aveError/errors.size();
+		return aveError;
+	}
+	
+	
+	/*
+	 * Prints out the average error of all epochs
+	 */
+	private void printAveError(ArrayList<Double> aveError)	{
+		int numEpochs = aveError.size();
+		for(int epoch = 0; epoch < numEpochs; epoch++)	{
+			System.out.println(aveError.get(epoch));
+		}
+		
+	}
 	
 	/*
 	 *  Create the network of nodes
