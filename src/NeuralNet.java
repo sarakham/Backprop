@@ -16,7 +16,7 @@ public class NeuralNet extends SupervisedLearner	{
 	ArrayList<Integer> targets;				//what the instance should have been classified
 	int INPUT_LAYER_INDEX = 0;
 	int HIDDENLAYERCOUNT = 1;
-	int NODESPERLAYER = 3;
+	int NODESPERLAYER = 5;
 	double LEARNING_RATE = .3;
 	double MOMENTUM = 1.0;
 	int YESCOUNT = 0;
@@ -51,7 +51,7 @@ public class NeuralNet extends SupervisedLearner	{
 		instanceOrder(features);
 
 		ArrayList<Double> errorsAcrossAllEpochs = new ArrayList<Double>();
-		for(int numEpoch = 0; numEpoch < 300; numEpoch++)	 {
+		for(int numEpoch = 0; numEpoch < 400; numEpoch++)	 {
 			
 			ArrayList<Double> thisEpochErrors = new ArrayList<Double>();
 			ArrayList<Integer> instanceList = instanceOrder(features);
@@ -100,7 +100,7 @@ public class NeuralNet extends SupervisedLearner	{
 		}
 			
 			System.out.println("Finished Training.");
-			printArrayList(errorsAcrossAllEpochs);
+//			printArrayList(errorsAcrossAllEpochs);
 			writeArrayListToFile(errorsAcrossAllEpochs, "allEpochErrors");
 	}
 	
@@ -337,7 +337,7 @@ public class NeuralNet extends SupervisedLearner	{
 	 */
 	private void computeError(int layer)	{
 
-		if(layer == layers.size()-1)	{	//output nodes
+		if(layer == layers.size()-1)	{	// output nodes
 			ArrayList<BPNode> layerj = layers.get(layer - 1);
 			ArrayList<BPNode> layerk = layers.get(layer);
 			
@@ -373,7 +373,7 @@ public class NeuralNet extends SupervisedLearner	{
 				double f_prime_net_j = outputJ * (1 - outputJ);
 				
 				// store error
-				for (int k = 0; k < layerj.size(); k++)	{		
+				for (int k = 0; k < layerk.size(); k++)	{		
 					double weight_jk = layerk.get(k).weights.get(j);
 					double errorK = layerk.get(k).error;
 					error_layerk += weight_jk * errorK;
@@ -479,7 +479,7 @@ public class NeuralNet extends SupervisedLearner	{
 	@Override
 	public void predict(double[] features, double[] labels) throws Exception {
 		
-		System.out.println("Prediction");
+//		System.out.println("Prediction");
 		PREDICTION_COUNT++;
 		if (PREDICTION_COUNT == 75)	{
 			System.out.println("cont: " + PREDICTION_COUNT);
