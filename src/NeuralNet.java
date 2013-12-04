@@ -1,5 +1,10 @@
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.security.acl.LastOwnerException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 
@@ -10,10 +15,13 @@ public class NeuralNet extends SupervisedLearner	{
 	ArrayList<Double> inputNodeValues;			//the values of the attributes
 	ArrayList<Integer> targets;				//what the instance should have been classified
 	int INPUT_LAYER_INDEX = 0;
-	int HIDDENLAYERCOUNT = 2;
+	int HIDDENLAYERCOUNT = 1;
 	int NODESPERLAYER = 3;
-	double LEARNING_RATE = 3.5;
+	double LEARNING_RATE = .3;
 	double MOMENTUM = 1.0;
+	int YESCOUNT = 0;
+	int NOCOUNT = 0;
+	int PREDICTION_COUNT = 0;
 	
 	/*
 	 *  Constructor
@@ -29,35 +37,40 @@ public class NeuralNet extends SupervisedLearner	{
 	@Override
 	public void train(Matrix features, Matrix labels) throws Exception {
 		
-	// create the network of nodes
+		// create the network of nodes
 		int numInstances = features.rows();
 		int numInputNodes = features.cols();
-		int numOutputNodes = labels.getUniqueValues(0);	//HACK won't work if not all classifications are seen
-
-	// initialize the network
-		createNetwork(numInputNodes, numOutputNodes);
-		intializeNetworkWeights();
+		int numOutputNodes = labels.getUniqueValues(0);		//HACK won't work if not all classifications are seen
+	
+		// initialize the network - the if statement is so we don't re-initialize weights when doing cross-fold  
+		if (layers.size() == 0)	{
+			createNetwork(numInputNodes, numOutputNodes);
+			intializeNetworkWeights();
+		}
 		
 		instanceOrder(features);
 
-	ArrayList<Double> epoch = new ArrayList<Double>();
-	for(int i = 0; i < 1000; i++)	 {
-		ArrayList<Double> thisEpochErrors = new ArrayList<Double>();
-	
-		// get all the instances - input values come from the instance
-			ArrayList<Integer> instances = instanceOrder(features);
+		ArrayList<Double> errorsAcrossAllEpochs = new ArrayList<Double>();
+		for(int numEpoch = 0; numEpoch < 300; numEpoch++)	 {
+			
+			ArrayList<Double> thisEpochErrors = new ArrayList<Double>();
+			ArrayList<Integer> instanceList = instanceOrder(features);
+
 			for(int instCount = 0; instCount < numInstances; instCount++)	{
+				int instance = instanceList.get(instCount);	//get the next instance from the list
 				
-				int instance = instances.get(instCount);	//get the next instance from the list
-				
+				// set up instance
 				setInputNodeValues(features, instance);
 				setTargets(numOutputNodes, (int)labels.get(instance, 0));
 	
-				// Pass forward through network, calculating value of each node in each layer
+				// Calculating value of each node in each layer
 				for(int layerCount = 0; layerCount < layers.size(); layerCount++)	{
 //					System.out.println("------------------\nLAYER: " + layerCount + "\n------------------");
 					passforward(layerCount);
 				}
+				
+				//check our prediction
+				checkTrainPrediction();
 				
 				// calculate the error for each layer
 				for (int layer = layers.size()-1; layer >= 0; layer--)		{
@@ -68,19 +81,27 @@ public class NeuralNet extends SupervisedLearner	{
 				for (int layer = layers.size()-1; layer >= 0; layer--)		{
 					updateWeights(layer);
 				}
-				System.out.println("Pause to check answers");
 				
-				// get the average error on the output nodes
-				double average_output_err = calcAveErrorOnOutput();
+				// get the error on the output nodes
+				double average_output_err = calcOutputNodeError();
 				thisEpochErrors.add(average_output_err);
 			}
-			System.out.println("Pause at end of epoch: " + i);
-			double aveErrorAcrossInstances = calcErrorEpoch(thisEpochErrors);
-			epoch.add(aveErrorAcrossInstances);
+			
+//			System.out.println("Pause at end of epoch " + numEpoch);
+			double errorThisEpoch = calcAverageError(thisEpochErrors);
+			errorsAcrossAllEpochs.add(errorThisEpoch);
+			if (numEpoch % 100 == 0)	{
+				System.out.println("Epoch " + numEpoch);
+			}
+			
+//			System.out.println("Yes: " + YESCOUNT + " No: " + NOCOUNT + " = " + (double)YESCOUNT/(YESCOUNT+NOCOUNT));
+			YESCOUNT = 0;
+			NOCOUNT = 0;
 		}
-	
-		//print ave errors across all epochs
-		printAveError(epoch);
+			
+			System.out.println("Finished Training.");
+			printArrayList(errorsAcrossAllEpochs);
+			writeArrayListToFile(errorsAcrossAllEpochs, "allEpochErrors");
 	}
 	
 	
@@ -100,17 +121,16 @@ public class NeuralNet extends SupervisedLearner	{
 	
 	
 	/*
-	 * Calculates the average error on the ouput nodes 
+	 * Returns the sum of errors across the output nodes 
 	 */
-	private double calcAveErrorOnOutput()	{
+	private double calcOutputNodeError()	{
 		int outputLayerIndex = layers.size()-1;
 		int nodeCount = layers.get(outputLayerIndex).size();
 		
 		double error_total = 0.0;
 		for(int node = 0; node < nodeCount; node++)	{
-			error_total += layers.get(outputLayerIndex).get(node).error;
+			error_total += Math.abs(layers.get(outputLayerIndex).get(node).error);
 		}
-		error_total = error_total/nodeCount;	//average
 		return error_total;
 	}
 	
@@ -201,6 +221,32 @@ public class NeuralNet extends SupervisedLearner	{
 
 	
 	/*
+	 * Determines if we made the correct prediction
+	 */
+	private void checkTrainPrediction()	{
+		int predictionIndex = computePrediction();
+		
+		//find the 1 in targets
+		int classificationIndex = -1;
+		for(int index = 0; index < targets.size(); index++)	{
+			if(targets.get(index) == 1)	{
+				classificationIndex = index;
+				break;
+			}
+		}
+		
+		if(classificationIndex == predictionIndex)	{
+//			System.out.println("Correct");
+			YESCOUNT++;
+		}
+		else	{
+//			System.out.println("Wrong");
+			NOCOUNT++;
+		}
+	}
+	
+	
+	/*
 	 * Picks the highest value output node and returns its index in layers
 	 */
 	private int computePrediction()	{
@@ -235,6 +281,7 @@ public class NeuralNet extends SupervisedLearner	{
 			}
 		}
 	}
+	
 	
 	/*
 	 * Calculate the values of each node in a layer called j by
@@ -357,7 +404,7 @@ public class NeuralNet extends SupervisedLearner	{
 	/*
 	 * Calculates the average error of an epoch
 	 */
-	private double calcErrorEpoch(ArrayList<Double> errors)	{
+	private double calcAverageError(ArrayList<Double> errors)	{
 		double aveError = 0.0;
 		for(int i = 0; i < errors.size(); i++)	{
 			aveError += errors.get(i);
@@ -368,15 +415,37 @@ public class NeuralNet extends SupervisedLearner	{
 	
 	
 	/*
-	 * Prints out the average error of all epochs
+	 * Prints out an ArrayList
 	 */
-	private void printAveError(ArrayList<Double> aveError)	{
-		int numEpochs = aveError.size();
-		for(int epoch = 0; epoch < numEpochs; epoch++)	{
-			System.out.println(aveError.get(epoch));
+	private void printArrayList(ArrayList<Double> list)	{
+		int length = list.size();
+		for(int i = 0; i < length; i++)	{
+			System.out.println(list.get(i));
 		}
 		
 	}
+	
+	
+	/*
+	 * Writes an ArrayList to a .txt file
+	 */
+	private void writeArrayListToFile(ArrayList<Double> list, String name) throws IOException	{
+		String filename = name + ".txt";
+		
+		try {
+			PrintWriter out = new PrintWriter(new FileWriter(filename));
+			
+			for(int i = 0; i < list.size(); i++)	{
+				out.println(list.get(i));
+			}
+
+			out.close();
+		} catch (FileNotFoundException e) {
+			System.out.println("Failed to make PrintWriter");
+			e.printStackTrace();
+		}
+	}
+	
 	
 	/*
 	 *  Create the network of nodes
@@ -406,11 +475,51 @@ public class NeuralNet extends SupervisedLearner	{
 		}
 	}
 	
-	
+
 	@Override
 	public void predict(double[] features, double[] labels) throws Exception {
-		// TODO Auto-generated method stub
 		
+		System.out.println("Prediction");
+		PREDICTION_COUNT++;
+		if (PREDICTION_COUNT == 75)	{
+			System.out.println("cont: " + PREDICTION_COUNT);
+		}
+		
+		// set input node values
+		for (int i = 0; i < features.length; i++)	{
+			inputNodeValues.add(i, features[i]);
+		}
+		
+		// Calculating value of each node in each layer
+		for (int numLayer = 0; numLayer < layers.size(); numLayer++)	{
+			passforward(numLayer);
+		}
+		
+		//check our prediction - index of output node with largest value
+		ArrayList<BPNode> outputNodes = layers.get(layers.size()-1);
+		int prediction = 0;
+		double max = -1;
+		for (int index = 0; index < outputNodes.size(); index++)	{
+			if(outputNodes.get(index).value > max)	{
+				max = outputNodes.get(index).value;
+				prediction = index;
+			}
+		}
+		
+		//assign the label
+		labels[0] = prediction;
 	}
+	
+	//--------------------- dead code ------------------------
+//	/*
+//	 * Deletes the network
+//	 */
+//	private void deleteNetwork()	{
+//		
+//		for(int layer = 0; layer <= layers.size(); layer++)	{
+//			layers.remove(layer);
+//			System.out.println("Layers size: " + layers.size());
+//		}
+//	}
 }
 
