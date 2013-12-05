@@ -14,14 +14,14 @@ public class NeuralNet extends SupervisedLearner	{
 	ArrayList<ArrayList<BPNode>> layers;
 	ArrayList<Double> inputNodeValues;			//the values of the attributes
 	ArrayList<Integer> targets;				//what the instance should have been classified
+	ArrayList<Double> predictErrors;
 	int INPUT_LAYER_INDEX = 0;
 	int HIDDENLAYERCOUNT = 1;
-	int NODESPERLAYER = 5;
+	int NODESPERLAYER = 3;
 	double LEARNING_RATE = .3;
 	double MOMENTUM = 1.0;
 	int YESCOUNT = 0;
 	int NOCOUNT = 0;
-	int PREDICTION_COUNT = 0;
 	
 	/*
 	 *  Constructor
@@ -31,12 +31,13 @@ public class NeuralNet extends SupervisedLearner	{
 		layers = new ArrayList<ArrayList<BPNode>>();
 		inputNodeValues = new ArrayList<Double>();
 		targets = new ArrayList<Integer>();
+		predictErrors = new ArrayList<Double>();
 	}
 	
 	
 	@Override
 	public void train(Matrix features, Matrix labels) throws Exception {
-		
+		System.out.println("Train");
 		// create the network of nodes
 		int numInstances = features.rows();
 		int numInputNodes = features.cols();
@@ -65,7 +66,6 @@ public class NeuralNet extends SupervisedLearner	{
 	
 				// Calculating value of each node in each layer
 				for(int layerCount = 0; layerCount < layers.size(); layerCount++)	{
-//					System.out.println("------------------\nLAYER: " + layerCount + "\n------------------");
 					passforward(layerCount);
 				}
 				
@@ -476,14 +476,28 @@ public class NeuralNet extends SupervisedLearner	{
 	}
 	
 
+	/*
+	 * Copies the network of nodes
+	 */
+	private ArrayList<ArrayList<BPNode>> copyNetwork()	{
+		
+		ArrayList<ArrayList<BPNode>> layers_copy = new ArrayList<ArrayList<BPNode>>();
+		
+		//copy each layer
+		for(int layer = 0; layer < layers.size(); layer++)	{
+			ArrayList<BPNode> layerNodes = new ArrayList<BPNode>();
+			for(int node = 0; node < layers.get(layer).size(); node++)	{
+				layerNodes.add(node, new BPNode(layers.get(layer).get(node)));	//deep copy each node
+			}
+			layers_copy.add(layer, layerNodes);
+		}
+		return layers_copy;
+	}
+	
 	@Override
 	public void predict(double[] features, double[] labels) throws Exception {
 		
 //		System.out.println("Prediction");
-		PREDICTION_COUNT++;
-		if (PREDICTION_COUNT == 75)	{
-			System.out.println("cont: " + PREDICTION_COUNT);
-		}
 		
 		// set input node values
 		for (int i = 0; i < features.length; i++)	{
@@ -494,6 +508,14 @@ public class NeuralNet extends SupervisedLearner	{
 		for (int numLayer = 0; numLayer < layers.size(); numLayer++)	{
 			passforward(numLayer);
 		}
+		
+		// could get the error off the output nodes here
+			//copy the network
+			ArrayList<ArrayList<Double>> layers_copy = new ArrayList<ArrayList<Double>>(); 
+			//pass forward
+			//compute the error
+			//collect the error
+			//restore the network
 		
 		//check our prediction - index of output node with largest value
 		ArrayList<BPNode> outputNodes = layers.get(layers.size()-1);
@@ -509,17 +531,4 @@ public class NeuralNet extends SupervisedLearner	{
 		//assign the label
 		labels[0] = prediction;
 	}
-	
-	//--------------------- dead code ------------------------
-//	/*
-//	 * Deletes the network
-//	 */
-//	private void deleteNetwork()	{
-//		
-//		for(int layer = 0; layer <= layers.size(); layer++)	{
-//			layers.remove(layer);
-//			System.out.println("Layers size: " + layers.size());
-//		}
-//	}
 }
-
