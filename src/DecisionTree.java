@@ -15,6 +15,7 @@ public class DecisionTree extends SupervisedLearner {
 	 * Constructor
 	 */
 	public DecisionTree()	{
+		
 	}
 	
 	/* 

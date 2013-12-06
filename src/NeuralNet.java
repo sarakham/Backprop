@@ -14,11 +14,9 @@ public class NeuralNet extends SupervisedLearner	{
 	ArrayList<Integer> numHiddenNodesPerLayer;
 	int INPUT_LAYER_INDEX = 0;
 	int HIDDENLAYERCOUNT = 1;
-	int NODESPERLAYER = 3;
+//	int NODESPERLAYER = 3;
 	double LEARNING_RATE = .5;
 	double MOMENTUM = 0.0;
-	int YESCOUNT = 0;
-	int NOCOUNT = 0;
 	
 	/*
 	 *  Constructor
@@ -29,7 +27,7 @@ public class NeuralNet extends SupervisedLearner	{
 		inputNodeValues = new ArrayList<Double>();
 		targets = new ArrayList<Integer>();
 		numHiddenNodesPerLayer = new ArrayList<Integer>();
-		numHiddenNodesPerLayer.add(NODESPERLAYER);
+		numHiddenNodesPerLayer.add(3);
 //		numHiddenNodesPerLayer.add(6);
 //		numHiddenNodesPerLayer.add(4);
 	}
@@ -59,7 +57,10 @@ public class NeuralNet extends SupervisedLearner	{
 
 		ArrayList<Double> trainingErrorsAcrossAllEpochs = new ArrayList<Double>();
 		ArrayList<Double> testAccuracyAcrossAllEpochs = new ArrayList<Double>();
-		for(int numEpoch = 0; numEpoch < 400; numEpoch++)	 {
+		int numEpoch = 0;
+		double errorThisEpoch = 1;
+		while((numEpoch < 1000) || (errorThisEpoch > .005))	{
+			numEpoch++;
 			
 			ArrayList<Double> thisEpochErrors = new ArrayList<Double>();
 			ArrayList<Integer> instanceList = instanceOrder(features);
@@ -98,17 +99,16 @@ public class NeuralNet extends SupervisedLearner	{
 			if (numEpoch % 100 == 0)	{
 				System.out.println("Epoch " + numEpoch);
 			}
-
 			
 			// calculate training error for the epoch
-			double errorThisEpoch = calcAverageError(thisEpochErrors);
+			errorThisEpoch = calcAverageError(thisEpochErrors);
 			trainingErrorsAcrossAllEpochs.add(errorThisEpoch);
 			
 			// calculate the test accuracy for the epoch
 			if(testFeatures != null && testLabels != null)	{
 				try {
 					double accuracy = super.measureAccuracy(testFeatures, testLabels, null);
-					System.out.println("Epoch: " + numEpoch + " accuracy: " + accuracy);
+//					System.out.println("Epoch: " + numEpoch + " accuracy: " + accuracy);
 					testAccuracyAcrossAllEpochs.add(accuracy);
 				}
 				catch (Exception e) {
@@ -116,13 +116,9 @@ public class NeuralNet extends SupervisedLearner	{
 					e.printStackTrace();
 				}
 			}
-			
-//			System.out.println("Yes: " + YESCOUNT + " No: " + NOCOUNT + " = " + (double)YESCOUNT/(YESCOUNT+NOCOUNT));
-			YESCOUNT = 0;
-			NOCOUNT = 0;
 		}
 		
-		System.out.println("Finished Training.");
+		System.out.println("Finished Training with " + numEpoch);
 		writeArrayListToFile(trainingErrorsAcrossAllEpochs, "allEpochErrors");
 		writeArrayListToFile(testAccuracyAcrossAllEpochs, "allEpochTestAccuracy");
 	}
@@ -256,15 +252,6 @@ public class NeuralNet extends SupervisedLearner	{
 				classificationIndex = index;
 				break;
 			}
-		}
-		
-		if(classificationIndex == predictionIndex)	{
-//			System.out.println("Correct");
-			YESCOUNT++;
-		}
-		else	{
-//			System.out.println("Wrong");
-			NOCOUNT++;
 		}
 	}
 	
