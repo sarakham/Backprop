@@ -20,24 +20,24 @@ public class BPNode {
 		this.type = type;
 	}
 	
-	/*
-	 * Copy constructor
-	 */
-	BPNode(BPNode other)	{
-		//copy weights 
-		for(int i=0; i < other.weights.size(); i++)	{
-			this.weights.add(i, other.weights.get(i));
-		}
-		
-		//copy weightChanges
-		for(int i=0; i < other.weightChanges.size(); i++)	{
-			this.weightChanges.add(i, other.weightChanges.get(i));
-		}
-		
-		this.value = other.value;
-		this.error = other.error;
-		this.type = other.type;
-	}
+//	/*
+//	 * Copy constructor
+//	 */
+//	BPNode(BPNode other)	{
+//		//copy weights 
+//		for(int i=0; i < other.weights.size(); i++)	{
+//			this.weights.add(i, other.weights.get(i));
+//		}
+//		
+//		//copy weightChanges
+//		for(int i=0; i < other.weightChanges.size(); i++)	{
+//			this.weightChanges.add(i, other.weightChanges.get(i));
+//		}
+//		
+//		this.value = other.value;
+//		this.error = other.error;
+//		this.type = other.type;
+//	}
 	
 	/*
 	 * Returns a string object of the BPNode

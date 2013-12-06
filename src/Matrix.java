@@ -507,15 +507,15 @@ public class Matrix {
 		}
 	}
 
-	public void printValues(String label)	{
-		System.out.println("\n" + label);
-		for(int i = 0; i < rows(); i++)	{
-			for(int j = 0; j < cols(); j++)	{
-				System.out.print(get(i, j) + "\t");
-			}
-			System.out.println("");
-		}
-		System.out.println("\n");
-	}
+//	public void printValues(String label)	{
+//		System.out.println("\n" + label);
+//		for(int i = 0; i < rows(); i++)	{
+//			for(int j = 0; j < cols(); j++)	{
+//				System.out.print(get(i, j) + "\t");
+//			}
+//			System.out.println("");
+//		}
+//		System.out.println("\n");
+//	}
 	
 }

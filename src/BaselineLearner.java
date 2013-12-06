@@ -30,4 +30,11 @@ public class BaselineLearner extends SupervisedLearner {
 			labels[i] = m_labels[i];
 	}
 
+	@Override
+	public void train(Matrix trainFeatures, Matrix trainLabels,
+			Matrix testFeatures, Matrix testLabels) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

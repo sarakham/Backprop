@@ -13,12 +13,13 @@ import java.io.PrintWriter;
 
 public abstract class SupervisedLearner {
 
-	ArrayList<Double> predictErrors;
-	
 	// Before you call this method, you need to divide your data
 	// into a feature matrix and a label matrix.
 	public abstract void train(Matrix features, Matrix labels) throws Exception;
 
+	// Train method for also calculating accuracy
+	public abstract void train(Matrix trainFeatures, Matrix trainLabels, Matrix testFeatures, Matrix testLabels);
+	
 	// A feature vector goes in. A label vector comes out. (Some supervised
 	// learning algorithms only support one-dimensional label vectors. Some
 	// support multi-dimensional label vectors.)
@@ -52,7 +53,6 @@ public abstract class SupervisedLearner {
 				double delta = targ[0] - pred[0];
 				sse += (delta * delta);
 			}
-			writeArrayListToFile(predictErrors, "predictErrors");		// my addition
 			return Math.sqrt(sse / features.rows());
 		}
 		else
@@ -79,29 +79,8 @@ public abstract class SupervisedLearner {
 				if(pred == targ)
 					correctCount++;
 			}
-			writeArrayListToFile(predictErrors, "decisiontree_predictErrors");		// my addition
 			return (double)correctCount / features.rows();
 		}
 	}
 
-	
-	/*
-	 * Writes an ArrayList to a .txt file
-	 */
-	public void writeArrayListToFile(ArrayList<Double> list, String name) throws IOException	{
-		String filename = name + ".txt";
-		
-		try {
-			PrintWriter out = new PrintWriter(new FileWriter(filename));
-			
-			for(int i = 0; i < list.size(); i++)	{
-				out.println(list.get(i));
-			}
-
-			out.close();
-		} catch (FileNotFoundException e) { 
-			System.out.println("Failed to make PrintWriter");
-			e.printStackTrace();
-		}
-	}
 }

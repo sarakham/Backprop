@@ -15,7 +15,6 @@ public class DecisionTree extends SupervisedLearner {
 	 * Constructor
 	 */
 	public DecisionTree()	{
-		predictErrors = new ArrayList<Double>();
 	}
 	
 	/* 
@@ -291,5 +290,16 @@ public class DecisionTree extends SupervisedLearner {
 			return toReturn;
 		}
 	}	//end DTNode class
+	
+
+	/*
+	 * Never actually use this method
+	 */
+	@Override
+	public void train(Matrix trainFeatures, Matrix trainLabels,
+			Matrix testFeatures, Matrix testLabels) {
+		// TODO Auto-generated method stub
+		
+	}
 	
 }	//end DecisionTree class

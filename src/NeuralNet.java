@@ -1,10 +1,7 @@
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.security.acl.LastOwnerException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 
@@ -13,12 +10,11 @@ public class NeuralNet extends SupervisedLearner	{
 	Random rand;
 	ArrayList<ArrayList<BPNode>> layers;
 	ArrayList<Double> inputNodeValues;			//the values of the attributes
-	ArrayList<Integer> targets;				//what the instance should have been classified
-	
+	ArrayList<Integer> targets;					//what the instance should have been classified
 	int INPUT_LAYER_INDEX = 0;
 	int HIDDENLAYERCOUNT = 1;
 	int NODESPERLAYER = 3;
-	double LEARNING_RATE = .3;
+	double LEARNING_RATE = .5;
 	double MOMENTUM = 1.0;
 	int YESCOUNT = 0;
 	int NOCOUNT = 0;
@@ -31,17 +27,18 @@ public class NeuralNet extends SupervisedLearner	{
 		layers = new ArrayList<ArrayList<BPNode>>();
 		inputNodeValues = new ArrayList<Double>();
 		targets = new ArrayList<Integer>();
-		predictErrors = new ArrayList<Double>();
 	}
 	
-//	@Override
-//	public void train(Matrix features, Matrix labels, Matrix testFeatures, Matrix testLabels)	{
-//		
-//	}
-	
 	@Override
-	public void train(Matrix features, Matrix labels) throws Exception {
-		System.out.println("Train");
+	public void train(Matrix features, Matrix labels) throws Exception	{
+		train(features, labels, null, null);
+	}
+	
+	/*
+	 * Train and compute accuracy
+	 */
+	@Override
+	public void train(Matrix features, Matrix labels, Matrix testFeatures, Matrix testLabels) {
 		// create the network of nodes
 		int numInstances = features.rows();
 		int numInputNodes = features.cols();
@@ -56,14 +53,14 @@ public class NeuralNet extends SupervisedLearner	{
 		instanceOrder(features);
 
 		ArrayList<Double> trainingErrorsAcrossAllEpochs = new ArrayList<Double>();
-		ArrayList<Double> testAccuracy = new ArrayList<Double>();
-		for(int numEpoch = 0; numEpoch < 400; numEpoch++)	 {
+		ArrayList<Double> testAccuracyAcrossAllEpochs = new ArrayList<Double>();
+		for(int numEpoch = 0; numEpoch < 700; numEpoch++)	 {
 			
 			ArrayList<Double> thisEpochErrors = new ArrayList<Double>();
 			ArrayList<Integer> instanceList = instanceOrder(features);
 
 			for(int instCount = 0; instCount < numInstances; instCount++)	{
-				int instance = instanceList.get(instCount);	//get the next instance from the list
+				int instance = instanceList.get(instCount);		//get the next instance from the list
 				
 				// set up instance
 				setInputNodeValues(features, instance);
@@ -96,13 +93,24 @@ public class NeuralNet extends SupervisedLearner	{
 			if (numEpoch % 100 == 0)	{
 				System.out.println("Epoch " + numEpoch);
 			}
-			
+
 			
 			// calculate training error for the epoch
 			double errorThisEpoch = calcAverageError(thisEpochErrors);
 			trainingErrorsAcrossAllEpochs.add(errorThisEpoch);
 			
-			// TODO stop here and check the test accuracy
+			// calculate the test accuracy for the epoch
+			if(testFeatures != null && testLabels != null)	{
+				try {
+					double accuracy = super.measureAccuracy(testFeatures, testLabels, null);
+					System.out.println("Epoch: " + numEpoch + " accuracy: " + accuracy);
+					testAccuracyAcrossAllEpochs.add(accuracy);
+				}
+				catch (Exception e) {
+					System.out.println("An exception was handled while computing the test accuracy");
+					e.printStackTrace();
+				}
+			}
 			
 //			System.out.println("Yes: " + YESCOUNT + " No: " + NOCOUNT + " = " + (double)YESCOUNT/(YESCOUNT+NOCOUNT));
 			YESCOUNT = 0;
@@ -111,6 +119,7 @@ public class NeuralNet extends SupervisedLearner	{
 		
 		System.out.println("Finished Training.");
 		writeArrayListToFile(trainingErrorsAcrossAllEpochs, "allEpochErrors");
+		writeArrayListToFile(testAccuracyAcrossAllEpochs, "allEpochTestAccuracy");
 	}
 	
 	
@@ -418,21 +427,9 @@ public class NeuralNet extends SupervisedLearner	{
 	
 	
 	/*
-	 * Prints out an ArrayList
-	 */
-	private void printArrayList(ArrayList<Double> list)	{
-		int length = list.size();
-		for(int i = 0; i < length; i++)	{
-			System.out.println(list.get(i));
-		}
-		
-	}
-	
-	
-	/*
 	 * Writes an ArrayList to a .txt file
 	 */
-	public void writeArrayListToFile(ArrayList<Double> list, String name) throws IOException	{
+	public void writeArrayListToFile(ArrayList<Double> list, String name) {
 		String filename = name + ".txt";
 		
 		try {
@@ -443,7 +440,7 @@ public class NeuralNet extends SupervisedLearner	{
 			}
 
 			out.close();
-		} catch (FileNotFoundException e) {
+		} catch (IOException e) {
 			System.out.println("Failed to make PrintWriter");
 			e.printStackTrace();
 		}
@@ -482,7 +479,7 @@ public class NeuralNet extends SupervisedLearner	{
 	@Override
 	public void predict(double[] features, double[] labels) throws Exception {
 		
-		System.out.println("Prediction");
+//		System.out.println("Prediction");
 		
 		// set input node values
 		for (int i = 0; i < features.length; i++)	{
@@ -499,8 +496,6 @@ public class NeuralNet extends SupervisedLearner	{
 			computeError(layer);
 		}
 		
-		predictErrors.add(calcOutputNodeError());
-		
 		//check our prediction - index of output node with largest value
 		ArrayList<BPNode> outputNodes = layers.get(layers.size()-1);
 		int prediction = 0;
@@ -515,24 +510,4 @@ public class NeuralNet extends SupervisedLearner	{
 		//assign the label
 		labels[0] = prediction;
 	}
-	
-	
-	//----------------------------dead code-----------------------------
-//	/*
-//	 * Copies the network of nodes
-//	 */
-//	private ArrayList<ArrayList<BPNode>> copyNetwork()	{
-//		
-//		ArrayList<ArrayList<BPNode>> layers_copy = new ArrayList<ArrayList<BPNode>>();
-//		
-//		//copy each layer
-//		for(int layer = 0; layer < layers.size(); layer++)	{
-//			ArrayList<BPNode> layerNodes = new ArrayList<BPNode>();
-//			for(int node = 0; node < layers.get(layer).size(); node++)	{
-//				layerNodes.add(node, new BPNode(layers.get(layer).get(node)));	//deep copy each node
-//			}
-//			layers_copy.add(layer, layerNodes);
-//		}
-//		return layers_copy;
-//	}
 }

@@ -19,7 +19,7 @@ public class MLSystemManager {
 		if (model.equals("baseline")) return new BaselineLearner();
 		// else if (model.equals("perceptron")) return new Perceptron(rand);
 		else if (model.equals("neuralnet")) return new NeuralNet(rand);
-		else if (model.equals("decisiontree")) return new DecisionTreeLearner();
+		else if (model.equals("decisiontree")) return new DecisionTree();
 		// else if (model.equals("knn")) return new InstanceBasedLearner();
 		else throw new Exception("Unrecognized model: " + model);
 	}
@@ -123,7 +123,9 @@ public class MLSystemManager {
 			Matrix testFeatures = new Matrix(data, trainSize, 0, data.rows() - trainSize, data.cols() - 1);
 			Matrix testLabels = new Matrix(data, trainSize, data.cols() - 1, data.rows() - trainSize, 1);
 			double startTime = System.currentTimeMillis();
-			learner.train(trainFeatures, trainLabels);
+			if(learner instanceof NeuralNet)	{
+				learner.train(trainFeatures, trainLabels, testFeatures, testLabels);	//my train method
+			}
 			double elapsedTime = System.currentTimeMillis() - startTime;
 			System.out.println("Time to train (in seconds): " + elapsedTime / 1000.0);
 			double trainAccuracy = learner.measureAccuracy(trainFeatures, trainLabels, null);
