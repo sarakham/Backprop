@@ -11,11 +11,12 @@ public class NeuralNet extends SupervisedLearner	{
 	ArrayList<ArrayList<BPNode>> layers;
 	ArrayList<Double> inputNodeValues;			//the values of the attributes
 	ArrayList<Integer> targets;					//what the instance should have been classified
+	ArrayList<Integer> numHiddenNodesPerLayer;
 	int INPUT_LAYER_INDEX = 0;
 	int HIDDENLAYERCOUNT = 1;
 	int NODESPERLAYER = 3;
 	double LEARNING_RATE = .5;
-	double MOMENTUM = 1.0;
+	double MOMENTUM = 0.0;
 	int YESCOUNT = 0;
 	int NOCOUNT = 0;
 	
@@ -27,6 +28,10 @@ public class NeuralNet extends SupervisedLearner	{
 		layers = new ArrayList<ArrayList<BPNode>>();
 		inputNodeValues = new ArrayList<Double>();
 		targets = new ArrayList<Integer>();
+		numHiddenNodesPerLayer = new ArrayList<Integer>();
+		numHiddenNodesPerLayer.add(NODESPERLAYER);
+//		numHiddenNodesPerLayer.add(6);
+//		numHiddenNodesPerLayer.add(4);
 	}
 	
 	@Override
@@ -54,7 +59,7 @@ public class NeuralNet extends SupervisedLearner	{
 
 		ArrayList<Double> trainingErrorsAcrossAllEpochs = new ArrayList<Double>();
 		ArrayList<Double> testAccuracyAcrossAllEpochs = new ArrayList<Double>();
-		for(int numEpoch = 0; numEpoch < 700; numEpoch++)	 {
+		for(int numEpoch = 0; numEpoch < 400; numEpoch++)	 {
 			
 			ArrayList<Double> thisEpochErrors = new ArrayList<Double>();
 			ArrayList<Integer> instanceList = instanceOrder(features);
@@ -377,7 +382,7 @@ public class NeuralNet extends SupervisedLearner	{
 			ArrayList<BPNode> layerj = layers.get(layer);
 			ArrayList<BPNode> layerk = layers.get(layer + 1);
 			
-			// weights_jk * errors_k
+			// weights_jk * errors_k - j is a node in layerj
 			for (int j = 0; j < layerj.size(); j++)	{
 				
 				double error_layerk = 0.0;	//weights_jk * errors_k
@@ -396,7 +401,13 @@ public class NeuralNet extends SupervisedLearner	{
 				// weight change
 				for (int i = 0; i < layeri.size(); i++)	{
 					double output_i = layeri.get(i).value;
-					double weight_change_ij = LEARNING_RATE * output_i * error_j;
+					double momentum = 0.0;
+					//calculate momentum term
+					if(layers.get(layer).get(j).weightChanges.get(i) != null)	{
+						double previous = layers.get(layer).get(j).weightChanges.get(i);
+						momentum = MOMENTUM * previous;
+					}
+					double weight_change_ij = LEARNING_RATE * output_i * error_j + momentum;
 					//store the weight change
 					layers.get(layer).get(j).weightChanges.set(i, weight_change_ij);
 				}
@@ -460,9 +471,9 @@ public class NeuralNet extends SupervisedLearner	{
 		}
 		
 		// Hidden Nodes - number chosen
-		for(int i = 1; i <= HIDDENLAYERCOUNT; i++)	{
+		for(int i = 1; i <= numHiddenNodesPerLayer.size(); i++)	{
 			layers.add(i, new ArrayList<BPNode>());
-			for (int j = 0; j < NODESPERLAYER; j++)		{
+			for (int j = 0; j < numHiddenNodesPerLayer.get(i-1); j++)		{
 				layers.get(i).add(j, new BPNode("Hidden"));
 			}
 		}
