@@ -14,7 +14,7 @@ public class NeuralNet extends SupervisedLearner	{
 	ArrayList<ArrayList<BPNode>> layers;
 	ArrayList<Double> inputNodeValues;			//the values of the attributes
 	ArrayList<Integer> targets;				//what the instance should have been classified
-	ArrayList<Double> predictErrors;
+	
 	int INPUT_LAYER_INDEX = 0;
 	int HIDDENLAYERCOUNT = 1;
 	int NODESPERLAYER = 3;
@@ -34,6 +34,10 @@ public class NeuralNet extends SupervisedLearner	{
 		predictErrors = new ArrayList<Double>();
 	}
 	
+//	@Override
+//	public void train(Matrix features, Matrix labels, Matrix testFeatures, Matrix testLabels)	{
+//		
+//	}
 	
 	@Override
 	public void train(Matrix features, Matrix labels) throws Exception {
@@ -51,7 +55,8 @@ public class NeuralNet extends SupervisedLearner	{
 		
 		instanceOrder(features);
 
-		ArrayList<Double> errorsAcrossAllEpochs = new ArrayList<Double>();
+		ArrayList<Double> trainingErrorsAcrossAllEpochs = new ArrayList<Double>();
+		ArrayList<Double> testAccuracy = new ArrayList<Double>();
 		for(int numEpoch = 0; numEpoch < 400; numEpoch++)	 {
 			
 			ArrayList<Double> thisEpochErrors = new ArrayList<Double>();
@@ -82,26 +87,30 @@ public class NeuralNet extends SupervisedLearner	{
 					updateWeights(layer);
 				}
 				
-				// get the error on the output nodes
-				double average_output_err = calcOutputNodeError();
-				thisEpochErrors.add(average_output_err);
+				// compute training error for epoch - get the error on the output nodes
+				double instance_error = calcOutputNodeError();
+				thisEpochErrors.add(instance_error);
 			}
 			
-//			System.out.println("Pause at end of epoch " + numEpoch);
-			double errorThisEpoch = calcAverageError(thisEpochErrors);
-			errorsAcrossAllEpochs.add(errorThisEpoch);
+			// print epoch number
 			if (numEpoch % 100 == 0)	{
 				System.out.println("Epoch " + numEpoch);
 			}
+			
+			
+			// calculate training error for the epoch
+			double errorThisEpoch = calcAverageError(thisEpochErrors);
+			trainingErrorsAcrossAllEpochs.add(errorThisEpoch);
+			
+			// TODO stop here and check the test accuracy
 			
 //			System.out.println("Yes: " + YESCOUNT + " No: " + NOCOUNT + " = " + (double)YESCOUNT/(YESCOUNT+NOCOUNT));
 			YESCOUNT = 0;
 			NOCOUNT = 0;
 		}
-			
-			System.out.println("Finished Training.");
-//			printArrayList(errorsAcrossAllEpochs);
-			writeArrayListToFile(errorsAcrossAllEpochs, "allEpochErrors");
+		
+		System.out.println("Finished Training.");
+		writeArrayListToFile(trainingErrorsAcrossAllEpochs, "allEpochErrors");
 	}
 	
 	
@@ -297,7 +306,6 @@ public class NeuralNet extends SupervisedLearner	{
 			for(int n = 0; n < layer_j.size(); n++)	  {
 				layer_j.get(n).value = inputNodeValues.get(n);
 			}
-//			System.out.println("layer_j" + layer_j);			//uncomment
 		}
 		else if(j != 0)	 {		//hidden layers
 			ArrayList<BPNode> layer_i = layers.get(j-1);
@@ -311,20 +319,15 @@ public class NeuralNet extends SupervisedLearner	{
 				//sum of weights * i_node values
 				for(int i_node = 0; i_node < layer_i.size(); i_node++)	{	
 					double curNodeVal = layer_i.get(i_node).value * ij_weights.get(i_node);
-//					System.out.println("CurNodeValue (product of val and weight): " + curNodeVal);		//uncomment
 					layer_j.get(j_node).value = curNodeVal;
 					nodeValue += curNodeVal;
 				}
-//				System.out.println("weights for node j: " + j_count + " " + layer_j.get(j_count));
-//				System.out.println("\n\tValue before sigmoid: " + nodeValue);						//uncomment
 				
 				//compute the sigmoid
 				nodeValue = sigmoid(nodeValue);
 				
 				//update the value of the original node
 				layers.get(j).get(j_node).value = nodeValue;
-				
-//				System.out.println("\tNode value after sigmoid: " + nodeValue + "\n");				//uncomment
 			}
 		}
 	}
@@ -429,7 +432,7 @@ public class NeuralNet extends SupervisedLearner	{
 	/*
 	 * Writes an ArrayList to a .txt file
 	 */
-	private void writeArrayListToFile(ArrayList<Double> list, String name) throws IOException	{
+	public void writeArrayListToFile(ArrayList<Double> list, String name) throws IOException	{
 		String filename = name + ".txt";
 		
 		try {
@@ -475,29 +478,11 @@ public class NeuralNet extends SupervisedLearner	{
 		}
 	}
 	
-
-	/*
-	 * Copies the network of nodes
-	 */
-	private ArrayList<ArrayList<BPNode>> copyNetwork()	{
-		
-		ArrayList<ArrayList<BPNode>> layers_copy = new ArrayList<ArrayList<BPNode>>();
-		
-		//copy each layer
-		for(int layer = 0; layer < layers.size(); layer++)	{
-			ArrayList<BPNode> layerNodes = new ArrayList<BPNode>();
-			for(int node = 0; node < layers.get(layer).size(); node++)	{
-				layerNodes.add(node, new BPNode(layers.get(layer).get(node)));	//deep copy each node
-			}
-			layers_copy.add(layer, layerNodes);
-		}
-		return layers_copy;
-	}
 	
 	@Override
 	public void predict(double[] features, double[] labels) throws Exception {
 		
-//		System.out.println("Prediction");
+		System.out.println("Prediction");
 		
 		// set input node values
 		for (int i = 0; i < features.length; i++)	{
@@ -508,14 +493,13 @@ public class NeuralNet extends SupervisedLearner	{
 		for (int numLayer = 0; numLayer < layers.size(); numLayer++)	{
 			passforward(numLayer);
 		}
+
+		// calculate the error for each layer
+		for (int layer = layers.size()-1; layer >= 0; layer--)		{
+			computeError(layer);
+		}
 		
-		// could get the error off the output nodes here
-			//copy the network
-			ArrayList<ArrayList<Double>> layers_copy = new ArrayList<ArrayList<Double>>(); 
-			//pass forward
-			//compute the error
-			//collect the error
-			//restore the network
+		predictErrors.add(calcOutputNodeError());
 		
 		//check our prediction - index of output node with largest value
 		ArrayList<BPNode> outputNodes = layers.get(layers.size()-1);
@@ -531,4 +515,24 @@ public class NeuralNet extends SupervisedLearner	{
 		//assign the label
 		labels[0] = prediction;
 	}
+	
+	
+	//----------------------------dead code-----------------------------
+//	/*
+//	 * Copies the network of nodes
+//	 */
+//	private ArrayList<ArrayList<BPNode>> copyNetwork()	{
+//		
+//		ArrayList<ArrayList<BPNode>> layers_copy = new ArrayList<ArrayList<BPNode>>();
+//		
+//		//copy each layer
+//		for(int layer = 0; layer < layers.size(); layer++)	{
+//			ArrayList<BPNode> layerNodes = new ArrayList<BPNode>();
+//			for(int node = 0; node < layers.get(layer).size(); node++)	{
+//				layerNodes.add(node, new BPNode(layers.get(layer).get(node)));	//deep copy each node
+//			}
+//			layers_copy.add(layer, layerNodes);
+//		}
+//		return layers_copy;
+//	}
 }

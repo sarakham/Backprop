@@ -6,9 +6,15 @@
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 public abstract class SupervisedLearner {
 
+	ArrayList<Double> predictErrors;
+	
 	// Before you call this method, you need to divide your data
 	// into a feature matrix and a label matrix.
 	public abstract void train(Matrix features, Matrix labels) throws Exception;
@@ -46,6 +52,7 @@ public abstract class SupervisedLearner {
 				double delta = targ[0] - pred[0];
 				sse += (delta * delta);
 			}
+			writeArrayListToFile(predictErrors, "predictErrors");		// my addition
 			return Math.sqrt(sse / features.rows());
 		}
 		else
@@ -72,8 +79,29 @@ public abstract class SupervisedLearner {
 				if(pred == targ)
 					correctCount++;
 			}
+			writeArrayListToFile(predictErrors, "decisiontree_predictErrors");		// my addition
 			return (double)correctCount / features.rows();
 		}
 	}
 
+	
+	/*
+	 * Writes an ArrayList to a .txt file
+	 */
+	public void writeArrayListToFile(ArrayList<Double> list, String name) throws IOException	{
+		String filename = name + ".txt";
+		
+		try {
+			PrintWriter out = new PrintWriter(new FileWriter(filename));
+			
+			for(int i = 0; i < list.size(); i++)	{
+				out.println(list.get(i));
+			}
+
+			out.close();
+		} catch (FileNotFoundException e) { 
+			System.out.println("Failed to make PrintWriter");
+			e.printStackTrace();
+		}
+	}
 }
