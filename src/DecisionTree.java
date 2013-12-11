@@ -31,7 +31,7 @@ public class DecisionTree extends SupervisedLearner {
 		
 		// build tree
 		DTNode root = induceTree(features, labels, attributesToSplitOn);
-		String tree = root.toString();
+		String tree = root.toString(null);
 		System.out.println(tree);
 	}
 
@@ -67,7 +67,7 @@ public class DecisionTree extends SupervisedLearner {
 			System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
 			removeAttribute(attributesToSplitOn, selectedAttribute);
 			
-			if(DATA_TYPE == "discrete")	{
+			if(!isContinuous(features))	{
 				// make a branch for each value of the selected attribute
 				double[] uniqueValues = features.getUniqueValuesArray(selectedAttribute);
 				for (double value : uniqueValues)	{
@@ -95,6 +95,9 @@ public class DecisionTree extends SupervisedLearner {
 				Matrix.filterMatrixByLessThanMeanValue(features_below_mean, labels_below_mean, selectedAttribute);
 				//recurse and add the subtree as a child here
 				DTNode left_child = induceTree(features_below_mean, labels_below_mean, deepCopyArrayList(attributesToSplitOn));
+				if(left_child.isLeafNode())	{
+					left_child.attribute = selectedAttribute;
+				}
 				left_child.branchValue = mean;
 				root.addChild(left_child);
 					
@@ -104,6 +107,9 @@ public class DecisionTree extends SupervisedLearner {
 				Matrix.filterMatrixByGreaterThanMeanValue(features_above_mean, labels_above_mean, selectedAttribute);
 				//recurse and add the subtree as a child here
 				DTNode right_child = induceTree(features_above_mean, labels_above_mean, deepCopyArrayList(attributesToSplitOn));
+				if(right_child.isLeafNode())	{
+					right_child.attribute = selectedAttribute;
+				}
 				right_child.branchValue = mean;
 				root.addChild(right_child);
 			}
@@ -224,6 +230,9 @@ public class DecisionTree extends SupervisedLearner {
 		double classification;			//if this is a leaf node, it has a classification and no children
 		ArrayList<DTNode> children;
 		String type;
+		String branchValueString;
+		String attributeName;
+		String classificationValue;
 		
 		/*
 		 * Constructor
@@ -257,6 +266,22 @@ public class DecisionTree extends SupervisedLearner {
 		}
 		
 		/*
+		 * Finds the String value of the classification for printing out
+		 */
+		public void setClassificationString()	{
+			this.classificationValue = labels.attrValue(0, (int)classification);
+		}
+		
+		/*
+		 * Sets the string for the branch value, which is an attribute value from the parent's attribute, not the child
+		 */
+		public void setBranchValueString(int parentAttribute)	{
+			if(isContinuous(features) == false)	{
+				this.branchValueString = features.attrValue(parentAttribute, (int)branchValue);
+			}
+		}
+		
+		/*
 		 * Prints the node and all of its children
 		 *
 		 *  tear-prod-rate = reduced: none
@@ -274,28 +299,75 @@ public class DecisionTree extends SupervisedLearner {
 		 *		|  |  |  age = pre-presbyopic: none
 		 *		|  |  |  age = presbyopic: none
 		 */
-		public String toString()	{
-			String toReturn = "";
+		public String toString(String prefix)	{
+			String out = "";
+
+			//get all children branch values
+			ArrayList<Integer> branchValues = new ArrayList<Integer>();
+			for(int i = 0; i < children.size(); i++)	{
+				branchValues.add((int)children.get(i).branchValue);
+			}
+			System.out.println("Children's Values: " + branchValues);
 			
-			
-			if(!isLeafNode())	{
-				String attributeName = features.attrName(attribute);
-				
-				for(int branch = 0; branch < children.size(); branch++)	{
-					DTNode child = children.get(branch);
-					int branchValueInt = (int)children.get(branch).branchValue;
-					String branchValue = features.attrValue(attribute, branch);
+			if(branchValue < 0)	{	// is the root node
+				// just print children
+				for(int i = 0; i < children.size(); i++)	{
+					String parentAttributeName = features.attrName(attribute);
+					int parentAttributeNum = attribute;
+					int childAttributeNum = children.get(i).attribute;
+					String childAttributeName = features.attrName(childAttributeNum);
+					int branchValueToChildNum = branchValues.get(i);	//get branch value which corresponds with the child
+					String branchValueToChild = features.attrValue(parentAttributeNum, branchValueToChildNum);	//look in the parent's attr column to find the right branch values
 					
-					if(child.isLeafNode())	{
-						toReturn += attributeName + " = " + branchValue + " : " + labels.attrValue(0, (int)child.classification) + "\n";
+					if(children.get(i).isLeafNode())	{
+						String childClassification = labels.attrValue(0, (int)children.get(i).classification);
+						out += childAttributeName + " = " + branchValueToChild + " : " + childClassification + "\n";  
+						System.out.println(childAttributeName + " = " + branchValueToChild + " : " + childClassification + "\n");
 					}
 					else	{
-						toReturn += " |" + child.toString(); 
+						out += parentAttributeName + " = " + branchValueToChild + "\n";
+						System.out.println(parentAttributeName + " = " + branchValueToChild + "\n");
+						out += children.get(i).toString("| ");
 					}
+				}	//end for
+			}
+			else	{	//not the root node
+				String attributeName = features.attrName(attribute);
+				
+				//print self
+				out += features.attrName(attribute) + " = " + features.
+				
+				if(isLeafNode() == false)	{	//print children
+					//print children
+					for(int i = 0; i < children.size(); i++)	{
 					
+						if(isLeafNode() == false)	{
+							// "print attributeName = attributeValue"
+		//					out += prefix + attributeName + " = " + 
+							// print children & values
+						}
+					}
 				}
 			}
-			return toReturn;
+			
+			return out;
+//			if(!isLeafNode())	{
+//				String attributeName = features.attrName(attribute);
+//				
+//				for(int branch = 0; branch < children.size(); branch++)	{
+//					DTNode child = children.get(branch);
+//					int branchValueInt = (int)children.get(branch).branchValue;
+//					String branchValue = features.attrValue(attribute, branch);
+//					
+//					if(child.isLeafNode())	{
+//						toReturn += attributeName + " = " + branchValue + " : " + labels.attrValue(0, (int)child.classification) + "\n";
+//					}
+//					else	{
+//						toReturn += " |" + child.toString(); 
+//					}
+//					
+//				}
+//			}
 		}
 	}	//end DTNode class
 	
