@@ -87,19 +87,25 @@ public class DecisionTree extends SupervisedLearner {
 				removeAttribute(attributesToSplitOn, selectedAttribute);
 				
 				// branch for values below the mean and above the mean
-				double mean = 0;
+				double mean = features.columnMean(selectedAttribute);
 				
 				// copy the matrices & create a sub-matrix BELOW MEAN
 				Matrix features_below_mean = new Matrix(features);
 				Matrix labels_below_mean = new Matrix(labels);
 				Matrix.filterMatrixByLessThanMeanValue(features_below_mean, labels_below_mean, selectedAttribute);
-				// compute entropy & proportion
+				//recurse and add the subtree as a child here
+				DTNode left_child = induceTree(features_below_mean, labels_below_mean, deepCopyArrayList(attributesToSplitOn));
+				left_child.branchValue = mean;
+				root.addChild(left_child);
 					
 				// copy the matrices & create a sub-matrix ABOVE MEAN
 				Matrix features_above_mean = new Matrix(features);
 				Matrix labels_above_mean = new Matrix(labels);
 				Matrix.filterMatrixByGreaterThanMeanValue(features_above_mean, labels_above_mean, selectedAttribute);
-				// compute entropy & proportion
+				//recurse and add the subtree as a child here
+				DTNode right_child = induceTree(features_above_mean, labels_above_mean, deepCopyArrayList(attributesToSplitOn));
+				right_child.branchValue = mean;
+				root.addChild(right_child);
 			}
 		}
 		return root;
@@ -371,7 +377,7 @@ public class DecisionTree extends SupervisedLearner {
 //				System.out.println(instance_count + " instances of class #" + label);
 				double probability = instance_count/labels.rows();
 				entropy -= probability * (Math.log(probability)/Math.log(2));
-				System.out.println("\t|Entropy for class " + label + " is " + entropy);
+//				System.out.println("\t|Entropy for class " + label + " is " + entropy);
 			}
 			return entropy;
 		}
