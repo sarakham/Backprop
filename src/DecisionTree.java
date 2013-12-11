@@ -34,9 +34,13 @@ public class DecisionTree extends SupervisedLearner {
 			attributesToSplitOn.add(attribute);
 		}
 				
+		// find if the data is continuous
+		
+		
 		// build tree
 		DTNode root = induceTree(features, labels, attributesToSplitOn);
-		System.out.println(root);
+		String tree = root.toString();
+		System.out.println(tree);
 	}
 
 	
@@ -239,24 +243,42 @@ public class DecisionTree extends SupervisedLearner {
 		public String toString()	{
 			String toReturn = "";
 			
-			//print self
-			toReturn += features.attrName(attribute) + " = " + features.attrValue(attribute, (int)branchValue);
+			if(isLeafNode())	{	
+				
+			}
+			
+			
+			
 			
 			
 			if(isLeafNode())	{
-				toReturn += " : " + labels.attrValue(attribute,  (int)classification) + "\n"; 
+				toReturn += features.attrName(attribute) + " = " + features.attrValue(attribute, (int)branchValue) + " : " + labels.attrValue(attribute, (int)classification) + "\n";
 			}
 			else	{
-				toReturn += "\n";
+				// print each branch and its children
+				for(int branch = 0; branch < children.size(); branch++)	{
+					int branchValueInt = (int)children.get(branch).branchValue;
+					String branchValueString = features.attrValue(attribute, branchValueInt);
+					
+					toReturn += features.attrName(attribute) + " = " + branchValueString + "\n";
+					toReturn += "| " + children.get(branch).toString();
+				}
 			}
-			
-			//test so far
-			System.out.println(toReturn);
-			
-			//print children
-			for(int i = 0; i < children.size(); i++)	{
-				toReturn += "  | " + children.get(i).toString();
-			}
+
+//			if(isLeafNode())	{
+//				toReturn += " : " + labels.attrValue(attribute,  (int)classification) + "\n"; 
+//			}
+//			else	{
+//				toReturn += "\n";
+//			}
+//			
+//			//test so far
+//			System.out.println(toReturn);
+//			
+//			//print children
+//			for(int i = 0; i < children.size(); i++)	{
+//				toReturn += "  | " + children.get(i).toString();
+//			}
 			
 			return toReturn;
 		}
