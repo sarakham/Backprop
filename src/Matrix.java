@@ -125,6 +125,113 @@ public class Matrix {
 		}
 	}
 	
+	
+	/*
+	 * Creates a copy of a matrix and filters the instances by where they lie given the mean
+	 */
+	public static void filterMatrixByLessThanMeanValue(Matrix features, Matrix labels, int attributeColumn)	{
+		// get the mean of attributeColumn
+		double mean = features.columnMean(attributeColumn);
+		
+		ArrayList< double[] > features_m_data_new = new ArrayList< double[] >();
+		ArrayList< double[] > labels_m_data_new = new ArrayList< double[] >();
+		
+		for(int i = 0; i < features.rows(); i++)	{								//loop through the rows
+			if(features.row(i)[attributeColumn] < mean)	{				//deep copy the row
+				//copy the features row
+				double[] featuresSrcRow = features.row(i);
+				double[] featuresNewRow = new double[features.cols()];
+				for(int j = 0; j < features.cols(); j++)	{
+					featuresNewRow[j] = featuresSrcRow[j];
+				}
+				features_m_data_new.add(featuresNewRow);
+				
+				//copy the labels row
+				double[] labelsNewRow = new double[labels.cols()];
+				labelsNewRow[0] = labels.get(i,0);
+				labels_m_data_new.add(labelsNewRow);
+			}
+		}
+		
+		//copy features data
+		features.m_data = features_m_data_new;
+		ArrayList< String > features_m_attr_name_new = new ArrayList<String>();
+		ArrayList< TreeMap<String, Integer> > features_m_str_to_enum_new = new ArrayList< TreeMap<String, Integer> >();
+		ArrayList< TreeMap<Integer, String> > features_m_enum_to_str_new = new ArrayList< TreeMap<Integer, String> >();
+		
+		for(int i = 0; i < features.cols(); i++) {
+			features_m_attr_name_new.add(features.attrName(i));
+			features_m_str_to_enum_new.add(features.m_str_to_enum.get(i));
+			features_m_enum_to_str_new.add(features.m_enum_to_str.get(i));
+		}
+		
+		//copy labels data
+		labels.m_data = labels_m_data_new;
+		ArrayList< String > labels_m_attr_name_new = new ArrayList<String>();
+		ArrayList< TreeMap<String, Integer> > labels_m_str_to_enum_new = new ArrayList< TreeMap<String, Integer> >();
+		ArrayList< TreeMap<Integer, String> > labels_m_enum_to_str_new = new ArrayList< TreeMap<Integer, String> >();
+		
+		for(int i = 0; i < labels.cols(); i++) {
+			labels_m_attr_name_new.add(labels.attrName(i));
+			labels_m_str_to_enum_new.add(labels.m_str_to_enum.get(i));
+			labels_m_enum_to_str_new.add(labels.m_enum_to_str.get(i));
+		}
+	}
+	
+	
+	/*
+	 * Creates a copy of a matrix and filters the instances by where they lie given the mean
+	 */
+	public static void filterMatrixByGreaterThanMeanValue(Matrix features, Matrix labels, int attributeColumn)	{
+		// get the mean of attributeColumn
+		double mean = features.columnMean(attributeColumn);
+		
+		ArrayList< double[] > features_m_data_new = new ArrayList< double[] >();
+		ArrayList< double[] > labels_m_data_new = new ArrayList< double[] >();
+		
+		for(int i = 0; i < features.rows(); i++)	{								//loop through the rows
+			if(features.row(i)[attributeColumn] > mean)	{				//deep copy the row
+				//copy the features row
+				double[] featuresSrcRow = features.row(i);
+				double[] featuresNewRow = new double[features.cols()];
+				for(int j = 0; j < features.cols(); j++)	{
+					featuresNewRow[j] = featuresSrcRow[j];
+				}
+				features_m_data_new.add(featuresNewRow);
+				
+				//copy the labels row
+				double[] labelsNewRow = new double[labels.cols()];
+				labelsNewRow[0] = labels.get(i,0);
+				labels_m_data_new.add(labelsNewRow);
+			}
+		}
+		
+		//copy features data
+		features.m_data = features_m_data_new;
+		ArrayList< String > features_m_attr_name_new = new ArrayList<String>();
+		ArrayList< TreeMap<String, Integer> > features_m_str_to_enum_new = new ArrayList< TreeMap<String, Integer> >();
+		ArrayList< TreeMap<Integer, String> > features_m_enum_to_str_new = new ArrayList< TreeMap<Integer, String> >();
+		
+		for(int i = 0; i < features.cols(); i++) {
+			features_m_attr_name_new.add(features.attrName(i));
+			features_m_str_to_enum_new.add(features.m_str_to_enum.get(i));
+			features_m_enum_to_str_new.add(features.m_enum_to_str.get(i));
+		}
+		
+		//copy labels data
+		labels.m_data = labels_m_data_new;
+		ArrayList< String > labels_m_attr_name_new = new ArrayList<String>();
+		ArrayList< TreeMap<String, Integer> > labels_m_str_to_enum_new = new ArrayList< TreeMap<String, Integer> >();
+		ArrayList< TreeMap<Integer, String> > labels_m_enum_to_str_new = new ArrayList< TreeMap<Integer, String> >();
+		
+		for(int i = 0; i < labels.cols(); i++) {
+			labels_m_attr_name_new.add(labels.attrName(i));
+			labels_m_str_to_enum_new.add(labels.m_str_to_enum.get(i));
+			labels_m_enum_to_str_new.add(labels.m_enum_to_str.get(i));
+		}
+	}
+	
+	
 	// Adds a copy of the specified portion of that matrix to this matrix
 	public void add(Matrix that, int rowStart, int colStart, int rowCount) throws Exception {
 		if(colStart + cols() > that.cols())

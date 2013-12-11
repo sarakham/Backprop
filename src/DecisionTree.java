@@ -1,16 +1,11 @@
-import java.text.AttributedCharacterIterator.Attribute;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
 public class DecisionTree extends SupervisedLearner {
 
 	int NUM_ATTRIBUTES = 0;
-	String SPLITTING_CRITERION = "continuous";
+//	String DATA_TYPE = "discrete";
+	String DATA_TYPE = "continuous";
 	Matrix features_original;
 	Matrix labels_original;
 
@@ -33,14 +28,11 @@ public class DecisionTree extends SupervisedLearner {
 		for(int attribute = 0; attribute < NUM_ATTRIBUTES; attribute++)	{
 			attributesToSplitOn.add(attribute);
 		}
-				
-		// find if the data is continuous
-		
 		
 		// build tree
 		DTNode root = induceTree(features, labels, attributesToSplitOn);
-		String tree = root.toString();
-		System.out.println(tree);
+//		String tree = root.toString();
+//		System.out.println(tree);
 	}
 
 	
@@ -49,7 +41,7 @@ public class DecisionTree extends SupervisedLearner {
 	 */
 	public DTNode induceTree(Matrix features, Matrix labels, ArrayList<Integer> attributesToSplitOn)	{
 		System.out.println("--------------------\n Current Root Node"); printMatrices(features, labels);
-		System.out.println("\nattributeList: " + attributesToSplitOn);
+		System.out.println("attributeList: " + attributesToSplitOn);
 		
 		// Make node of the current tree
 		DTNode root = new DTNode(features, labels);
@@ -67,26 +59,47 @@ public class DecisionTree extends SupervisedLearner {
 			System.out.println("-------------------------------\n");
 		}
 		else	{
-			int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn);
-			if(selectedAttribute == 1.0)	{
-				System.out.println("Pause");
+			if(DATA_TYPE == "discrete")	{
+				int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn);
+				root.attribute = selectedAttribute;
+				System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
+				removeAttribute(attributesToSplitOn, selectedAttribute);
+				
+				// make a branch for each value of the selected attribute
+				double[] uniqueValues = features.getUniqueValuesArray(selectedAttribute);
+				for (double value : uniqueValues)	{
+					System.out.println("Branch value: " + value + " for attribute: " + selectedAttribute);
+					// copy the matrices & create a sub-matrix
+					Matrix features_copy = new Matrix(features);
+					Matrix labels_copy = new Matrix(labels);
+					Matrix.filterMatrixByAttributeValue(features_copy, labels_copy, selectedAttribute, value);
+					// recurse and add the subtree as a child here
+					DTNode child = induceTree(features_copy, labels_copy, deepCopyArrayList(attributesToSplitOn));	//give a deep copy of the arrayList to not change the original
+					child.branchValue = value;
+					root.addChild(child);
+				}
 			}
-			root.attribute = selectedAttribute;
-			System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
-			removeAttribute(attributesToSplitOn, selectedAttribute);
-			
-			// make a branch for each value of the selected attribute
-			double[] uniqueValues = features.getUniqueValuesArray(selectedAttribute);
-			for (double value : uniqueValues)	{
-				System.out.println("Branch value: " + value + " for attribute: " + selectedAttribute);
-				// copy the matrices & create a sub-matrix
-				Matrix features_copy = new Matrix(features);
-				Matrix labels_copy = new Matrix(labels);
-				Matrix.filterMatrixByAttributeValue(features_copy, labels_copy, selectedAttribute, value);
-				// recurse and add the subtree as a child here
-				DTNode child = induceTree(features_copy, labels_copy, deepCopyArrayList(attributesToSplitOn));	//give a deep copy of the arrayList to not change the original
-				child.branchValue = value;
-				root.addChild(child);		//attach the child branches to the root
+			else	{
+				//find where I want to split
+				int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn);
+				root.attribute = selectedAttribute;
+				System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
+				removeAttribute(attributesToSplitOn, selectedAttribute);
+				
+				// branch for values below the mean and above the mean
+				double mean = 0;
+				
+				// copy the matrices & create a sub-matrix BELOW MEAN
+				Matrix features_below_mean = new Matrix(features);
+				Matrix labels_below_mean = new Matrix(labels);
+				Matrix.filterMatrixByLessThanMeanValue(features_below_mean, labels_below_mean, selectedAttribute);
+				// compute entropy & proportion
+					
+				// copy the matrices & create a sub-matrix ABOVE MEAN
+				Matrix features_above_mean = new Matrix(features);
+				Matrix labels_above_mean = new Matrix(labels);
+				Matrix.filterMatrixByGreaterThanMeanValue(features_above_mean, labels_above_mean, selectedAttribute);
+				// compute entropy & proportion
 			}
 		}
 		return root;
@@ -132,14 +145,16 @@ public class DecisionTree extends SupervisedLearner {
 		System.out.println("\n");
 		
 		// prints the values
-		for(int i = 0; i < features.rows(); i++)	{
-			String row = "";
-			for(int j = 0; j < features.row(i).length; j++)	{
-				int value = (int) features.row(i)[j];
-				row += features.attrValue(j, value) + "\t";
+		if(!isContinuous(features))	{
+			for(int i = 0; i < features.rows(); i++)	{
+				String row = "";
+				for(int j = 0; j < features.row(i).length; j++)	{
+					int value = (int) features.row(i)[j];
+					row += features.attrValue(j, value) + "\t";
+				}
+				int labelvalue = (int) labels.row(i)[0]; 
+				System.out.println(row + " => " + labels.attrValue(0, labelvalue));//labels.row(i)[0]);
 			}
-			int labelvalue = (int) labels.row(i)[0]; 
-			System.out.println(row + " => " + labels.attrValue(0, labelvalue));//labels.row(i)[0]);
 		}
 //		System.out.println("\n");
 	}
@@ -153,7 +168,6 @@ public class DecisionTree extends SupervisedLearner {
 		//TODO auto-generated stub
 		
 	}
-	
 
 	/*
 	 *  Checks if all instances of the features Matrix
@@ -180,6 +194,16 @@ public class DecisionTree extends SupervisedLearner {
 		}
 	}
 	
+	/*
+	 * Check if continuous attribute
+	 */
+	public static boolean isContinuous(Matrix features)	{
+		if (features.m_enum_to_str.get(0).size() == 0)	{
+			return true;
+		}
+		return false;
+	}
+
 	
 	//---------------------------------------------------
 	/*
@@ -248,9 +272,6 @@ public class DecisionTree extends SupervisedLearner {
 			}
 			
 			
-			
-			
-			
 			if(isLeafNode())	{
 				toReturn += features.attrName(attribute) + " = " + features.attrValue(attribute, (int)branchValue) + " : " + labels.attrValue(attribute, (int)classification) + "\n";
 			}
@@ -308,8 +329,14 @@ public class DecisionTree extends SupervisedLearner {
 			
 			ArrayList<Double> informationGains = new ArrayList<Double>();
 			for(int attrColumn = 0; attrColumn < attributeList.size(); attrColumn++)	{
-				int attr = attributeList.get(attrColumn);
-				double info_gain = computeInformationGain(features, labels, attr);
+				int attr = attributeList.get(attrColumn); 	//only use columns in the attributeList (prevents repeats)
+				double info_gain = 0.0;
+				if(isContinuous(features))	{
+					info_gain = computeInformationGainContinuous(features, labels, attr);
+				}
+				else {
+					info_gain = computeInformationGain(features, labels, attr);
+				}
 				informationGains.add(attrColumn, info_gain);
 			}
 			
@@ -333,8 +360,8 @@ public class DecisionTree extends SupervisedLearner {
 		public static double computeEntropy(Matrix features, Matrix labels)	{
 			double entropy = 0.0;
 			
-			double[] uniqueLabels = labels.getUniqueValuesArray(0);
-			for (double label : uniqueLabels)	{
+			double[] classes = labels.getUniqueValuesArray(0);
+			for (double label : classes)	{
 				double instance_count = 0;
 				for(int instanceNumber = 0; instanceNumber < labels.rows(); instanceNumber++)	{
 					if(labels.get(instanceNumber, 0) == label)	{
@@ -344,13 +371,13 @@ public class DecisionTree extends SupervisedLearner {
 //				System.out.println(instance_count + " instances of class #" + label);
 				double probability = instance_count/labels.rows();
 				entropy -= probability * (Math.log(probability)/Math.log(2));
-//				System.out.println("\t|Entropy for class " + label + " is " + entropy);
+				System.out.println("\t|Entropy for class " + label + " is " + entropy);
 			}
 			return entropy;
 		}
 		
 		/*
-		 * Calculates information gain
+		 * Calculates information gain of discrete data
 		 * 		attrColumn is the column for which we will calculate information gain 
 		 */
 		public static double computeInformationGain(Matrix features, Matrix labels, int attrColumn)	{
@@ -373,6 +400,33 @@ public class DecisionTree extends SupervisedLearner {
 			//calculate the information gain
 			double information_gain = features_entropy - sum;
 			System.out.println("Information gain for attrColumn #" + attrColumn + ": " + information_gain);
+			return information_gain;
+		}
+		
+		
+		/*
+		 * Computes the Information Gain of continuous data
+		 */
+		public static double computeInformationGainContinuous(Matrix features, Matrix labels, int attrColumn)	{
+			double features_entropy = computeEntropy(features, labels);
+			
+			// data set below mean
+			Matrix features_below_mean = new Matrix(features);
+			Matrix labels_below_mean = new Matrix(labels);
+			// compute entropy & proportion
+			Matrix.filterMatrixByLessThanMeanValue(features_below_mean, labels_below_mean, attrColumn);
+			double proportion_below = (double)features_below_mean.rows() / (double)features.rows();
+			double entropy_below = computeEntropy(features_below_mean, labels_below_mean);
+			
+			// data set above mean
+			Matrix features_above_mean = new Matrix(features);
+			Matrix labels_above_mean = new Matrix(labels);
+			// compute entropy & proportion
+			Matrix.filterMatrixByGreaterThanMeanValue(features_above_mean, labels_above_mean, attrColumn);
+			double proportion_above = (double)features_above_mean.rows() / (double)features.rows();
+			double entropy_above = computeEntropy(features_above_mean, labels_above_mean);
+			
+			double information_gain = features_entropy - ((proportion_above * entropy_above) * (proportion_below * entropy_below)); 
 			return information_gain;
 		}
 		
