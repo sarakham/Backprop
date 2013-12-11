@@ -75,9 +75,11 @@ public class Matrix {
 		}
 	}
 		
-	// Removes all rows from the Features and Labels matrices, except where 
-	// attributeColumn contains value attributeValue
-	public static void selectAttributeValue(Matrix features, Matrix labels, int attributeColumn, double attributeValue)	{
+	/* 
+	 * Removes all rows from the Features and Labels matrices, except where 
+	 * attributeColumn contains value attributeValue
+	 */
+	public static void filterMatrixByAttributeValue(Matrix features, Matrix labels, int attributeColumn, double attributeValue)	{
 		ArrayList< double[] > features_m_data_new = new ArrayList< double[] >();
 		ArrayList< double[] > labels_m_data_new = new ArrayList< double[] >();
 		
@@ -355,7 +357,7 @@ public class Matrix {
 
 	// Returns the name of the specified value
 	String attrValue(int attr, int val) { return m_enum_to_str.get(attr).get(val); }
-
+	
 	// Returns the number of values associated with the specified attribute (or column)
 	// 0=continuous, 2=binary, 3=trinary, etc.
 	int valueCount(int col) { return m_enum_to_str.get(col).size(); }

@@ -47,19 +47,28 @@ public class Entropy {
 		double maxGain = -1;
 		int bestAttribute = -1;
 		int numberOfAttributes = features.cols();
-//		for(int curAttributeColumn = 0; curAttributeColumn < unusedAttributes.size(); curAttributeColumn++)
-		for(Integer curAttributeColumn : unusedAttributes)
+		
+		if(unusedAttributes.size() == 0)	{
+			System.out.println("Pause");
+		}
+		
+//		for(Integer curAttributeColumn : unusedAttributes)
+		for(int curAttributeColumn = 0; curAttributeColumn < unusedAttributes.size(); curAttributeColumn++)
 		{
 			double gain = calculateInfoGain(features, labels, curAttributeColumn);
 			double entropy = calculateEntropyNominal(features.getColumn(curAttributeColumn), features.getUniqueValuesArray(curAttributeColumn));
-//			System.out.println("\tInfo Gain at " + curAttributeColumn + ": " + gain);
-//			System.out.println("\tEntropy at " + curAttributeColumn + ": " + entropy);
+			System.out.println("\tInfo Gain at " + curAttributeColumn + ": " + gain);
+			System.out.println("\tEntropy at " + curAttributeColumn + ": " + entropy);
 			if(gain > maxGain)	{
 				maxGain = gain;
 				bestAttribute = curAttributeColumn;
 			}
 		}
 		
+		//if it's negative, return 0, otherwise return bestAttribute
+		if(bestAttribute < 0)	{
+			return 0;
+		}
 		return bestAttribute;
 	}
 	

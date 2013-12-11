@@ -54,7 +54,7 @@
 @attribute astigmatism		{no, yes}
 @attribute tear-prod-rate	{reduced, normal}
 @attribute contact-lenses	{soft, hard, none}
-
+	
 @data
 %
 % 24 instances
@@ -64,3 +64,5 @@ young,myope,no,normal,soft
 young,myope,yes,reduced,none
 young,myope,yes,normal,hard
 young,hypermetrope,no,reduced,none
+presbyopic,hypermetrope,no,reduced,none
+pre-presbyopic,hypermetrope,no,reduced,none
