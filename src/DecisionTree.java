@@ -4,8 +4,8 @@ import java.util.HashSet;
 public class DecisionTree extends SupervisedLearner {
 
 	int NUM_ATTRIBUTES = 0;
-//	String DATA_TYPE = "discrete";
-	String DATA_TYPE = "continuous";
+	String DATA_TYPE = "discrete";
+//	String DATA_TYPE = "continuous";
 	Matrix features_original;
 	Matrix labels_original;
 
@@ -31,8 +31,8 @@ public class DecisionTree extends SupervisedLearner {
 		
 		// build tree
 		DTNode root = induceTree(features, labels, attributesToSplitOn);
-//		String tree = root.toString();
-//		System.out.println(tree);
+		String tree = root.toString();
+		System.out.println(tree);
 	}
 
 	
@@ -50,21 +50,24 @@ public class DecisionTree extends SupervisedLearner {
 		
 		if(unanimousClassification >= 0)	{		// all instances have the same classification - return leaf node labeled with that class
 			root.classification = unanimousClassification;
+			root.type = "Leaf";
 			System.out.println("\nLeaf node classification: " + root.classification);
 			System.out.println("-------------------------------\n");
 		}
 		else if(attributesToSplitOn.size() == 0)	{	//return a leaf node labeled as the majority class
 			root.classification = labels.mostCommonValue(0);
+			root.type = "leaf";
 			System.out.println("\nLeaf node classification is majority class: " + root.classification);
 			System.out.println("-------------------------------\n");
 		}
 		else	{
+			// find where to split
+			int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn);
+			root.attribute = selectedAttribute;
+			System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
+			removeAttribute(attributesToSplitOn, selectedAttribute);
+			
 			if(DATA_TYPE == "discrete")	{
-				int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn);
-				root.attribute = selectedAttribute;
-				System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
-				removeAttribute(attributesToSplitOn, selectedAttribute);
-				
 				// make a branch for each value of the selected attribute
 				double[] uniqueValues = features.getUniqueValuesArray(selectedAttribute);
 				for (double value : uniqueValues)	{
@@ -75,17 +78,14 @@ public class DecisionTree extends SupervisedLearner {
 					Matrix.filterMatrixByAttributeValue(features_copy, labels_copy, selectedAttribute, value);
 					// recurse and add the subtree as a child here
 					DTNode child = induceTree(features_copy, labels_copy, deepCopyArrayList(attributesToSplitOn));	//give a deep copy of the arrayList to not change the original
+					if(child.isLeafNode())	{
+						child.attribute = selectedAttribute;
+					}
 					child.branchValue = value;
 					root.addChild(child);
 				}
 			}
 			else	{
-				//find where I want to split
-				int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn);
-				root.attribute = selectedAttribute;
-				System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
-				removeAttribute(attributesToSplitOn, selectedAttribute);
-				
 				// branch for values below the mean and above the mean
 				double mean = features.columnMean(selectedAttribute);
 				
@@ -219,10 +219,11 @@ public class DecisionTree extends SupervisedLearner {
 		
 		Matrix features;
 		Matrix labels;
-		int attribute; 	//each node represents an attribute which we branch off of there
+		int attribute; 				//each node represents an attribute which we branch off of there
 		double branchValue;			//the value of the attribute (e.g., for attribute "Income Level" we have branches for "Low" "Med" and "High")
 		double classification;			//if this is a leaf node, it has a classification and no children
 		ArrayList<DTNode> children;
+		String type;
 		
 		/*
 		 * Constructor
@@ -231,6 +232,9 @@ public class DecisionTree extends SupervisedLearner {
 			this.features = features;
 			this.labels = labels;
 			this.children = new ArrayList<DTNode>();
+			this.attribute = -1;
+			this.branchValue = -1;
+			this.classification = -1;
 		}
 		
 		/*
@@ -273,40 +277,24 @@ public class DecisionTree extends SupervisedLearner {
 		public String toString()	{
 			String toReturn = "";
 			
-			if(isLeafNode())	{	
+			
+			if(!isLeafNode())	{
+				String attributeName = features.attrName(attribute);
 				
-			}
-			
-			
-			if(isLeafNode())	{
-				toReturn += features.attrName(attribute) + " = " + features.attrValue(attribute, (int)branchValue) + " : " + labels.attrValue(attribute, (int)classification) + "\n";
-			}
-			else	{
-				// print each branch and its children
 				for(int branch = 0; branch < children.size(); branch++)	{
+					DTNode child = children.get(branch);
 					int branchValueInt = (int)children.get(branch).branchValue;
-					String branchValueString = features.attrValue(attribute, branchValueInt);
+					String branchValue = features.attrValue(attribute, branch);
 					
-					toReturn += features.attrName(attribute) + " = " + branchValueString + "\n";
-					toReturn += "| " + children.get(branch).toString();
+					if(child.isLeafNode())	{
+						toReturn += attributeName + " = " + branchValue + " : " + labels.attrValue(0, (int)child.classification) + "\n";
+					}
+					else	{
+						toReturn += " |" + child.toString(); 
+					}
+					
 				}
 			}
-
-//			if(isLeafNode())	{
-//				toReturn += " : " + labels.attrValue(attribute,  (int)classification) + "\n"; 
-//			}
-//			else	{
-//				toReturn += "\n";
-//			}
-//			
-//			//test so far
-//			System.out.println(toReturn);
-//			
-//			//print children
-//			for(int i = 0; i < children.size(); i++)	{
-//				toReturn += "  | " + children.get(i).toString();
-//			}
-			
 			return toReturn;
 		}
 	}	//end DTNode class
