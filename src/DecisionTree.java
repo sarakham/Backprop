@@ -34,14 +34,9 @@ public class DecisionTree extends SupervisedLearner {
 			attributesToSplitOn.add(attribute);
 		}
 				
-		// test entropy
-//		Entropy.computeEntropy(features, labels);
-//		Entropy.computeInformationGain(features, labels, 0);
-//		Entropy.getHighestInformationGain(features, labels);
-		
 		// build tree
 		DTNode root = induceTree(features, labels, attributesToSplitOn);
-//		System.out.println(root);
+		System.out.println(root);
 	}
 
 	
@@ -57,20 +52,19 @@ public class DecisionTree extends SupervisedLearner {
 		
 		double unanimousClassification = checkIfAllElementsShareClass(features, labels);
 		
-		
 		if(unanimousClassification >= 0)	{		// all instances have the same classification - return leaf node labeled with that class
 			root.classification = unanimousClassification;
 			System.out.println("\nLeaf node classification: " + root.classification);
-//			printMatrices(features, labels);
 			System.out.println("-------------------------------\n");
 		}
-		else if(attributesToSplitOn.isEmpty())	{
-			System.out.println("Leaf node - label with majority class");
-			return null;
+		else if(attributesToSplitOn.size() == 0)	{	//return a leaf node labeled as the majority class
+			root.classification = labels.mostCommonValue(0);
+			System.out.println("\nLeaf node classification is majority class: " + root.classification);
+			System.out.println("-------------------------------\n");
 		}
 		else	{
 			int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn);
-			if(selectedAttribute == 1){
+			if(selectedAttribute == 1.0)	{
 				System.out.println("Pause");
 			}
 			root.attribute = selectedAttribute;
@@ -94,65 +88,6 @@ public class DecisionTree extends SupervisedLearner {
 		return root;
 	}
 		
-// --------- OLD IF STATEMENT ----------		
-
-//		if(result >= 0)	{				//if all elements of features[bestAttributeColumn] have the same class
-//			Node leaf = new Node();		//return a leaf node associated with the class
-//				leaf.setClassificationIndex(result);
-//				leaf.setAttributeIndex(selectedAttributeColumn);
-//				leaf.setFeatures(features);
-//				leaf.setLabels(labels);
-//					System.out.println("\n************************");	//REMOVE
-//					System.out.println("NEW LEAF NODE with class index: " + result + " (" + labels.attrValue(0, result) + ")");
-//					leaf.print("");
-//					System.out.println("************************");
-//				
-//			return leaf;
-//		}
-//		else if(unusedAttributes.size() == 0)	{	//return a leaf node labeled as the majority class
-//			Node leaf = new Node();
-//				double label = labels.mostCommonValue(0);	//should only have rows for this attribute left
-//				leaf.setClassificationIndex((int)label);				//TODO make this save the index, not the value
-//				leaf.setAttributeIndex(selectedAttributeColumn);
-//				leaf.setFeatures(features);
-//				leaf.setLabels(labels);
-//					System.out.println("\n************************");	//REMOVE
-//					System.out.println("NEW LEAF NODE with class index: " + result + " (" + labels.attrValue(0, result) + ")");
-//					leaf.print("");
-//					System.out.println("************************");
-//			return leaf;
-//		}
-//		else	{
-//			unusedAttributes.remove(new Integer(selectedAttributeColumn));
-//			Node root = new Node();
-//				root.setAttributeIndex(selectedAttributeColumn);
-//				root.setFeatures(features);
-//				root.setLabels(labels);
-//			
-//			//make a branch for each attribute value
-//			double[] uniqueValues = features.getUniqueValuesArray(selectedAttributeColumn);
-//			for(int attrValue = 0; attrValue < uniqueValues.length; attrValue++) {
-//					Matrix features_partition = new Matrix(features);
-//					Matrix labels_partition = new Matrix(labels);
-//					Matrix.selectAttributeValue(features_partition, labels_partition, selectedAttributeColumn, uniqueValues[attrValue]);
-//					features_partition.print();	//REMOVE
-//					labels_partition.print();	//REMOVE
-//					
-//					//set the value of that branch's node to be the selected feature
-//					System.out.println("Branch's value: " + features_partition.attrValue(selectedAttributeColumn, attrValue));	//REMOVE
-//					Node child = induceTree(features_partition, labels_partition, unusedAttributes);
-//					child.setAttributeIndex(selectedAttributeColumn);
-//					child.setBranchValue(attrValue);
-//					System.out.println("TESTING BRANCH VALUE: " + child.getBranchValueName());
-//					System.out.println("TESTING EQUIVALENCE: " + (selectedAttributeColumn == child.getAttributeIndex()));
-//					
-//					root.addChild(child);
-//			}
-////			printTree(root,"");
-//			return root;
-//		}
-	
-
 
 	/*
 	 * Makes a deep copy of an ArrayList of Integers
@@ -302,17 +237,21 @@ public class DecisionTree extends SupervisedLearner {
 		 *		|  |  |  age = presbyopic: none
 		 */
 		public String toString()	{
-			//TODO print the node and all of its children
 			String toReturn = "";
 			
 			//print self
 			toReturn += features.attrName(attribute) + " = " + features.attrValue(attribute, (int)branchValue);
+			
+			
 			if(isLeafNode())	{
 				toReturn += " : " + labels.attrValue(attribute,  (int)classification) + "\n"; 
 			}
 			else	{
 				toReturn += "\n";
 			}
+			
+			//test so far
+			System.out.println(toReturn);
 			
 			//print children
 			for(int i = 0; i < children.size(); i++)	{
@@ -341,7 +280,7 @@ public class DecisionTree extends SupervisedLearner {
 	private static class Entropy	{
 		
 		/*
-		 * Returns the column number which gives the highest information gain
+		 * Returns the attribute from attributeList which gives the highest information gain
 		 */
 		public static int getHighestInformationGain(Matrix features, Matrix labels, ArrayList<Integer> attributeList)	{
 			
@@ -362,7 +301,8 @@ public class DecisionTree extends SupervisedLearner {
 				}
 			}
 			
-			return index;
+//			System.out.println("Highest information gain is column: " + index + " which corresponds with " + attributeList.get(index) + " in AttributeList");
+			return attributeList.get(index);
 		}
 		
 		/*
@@ -417,3 +357,4 @@ public class DecisionTree extends SupervisedLearner {
 	}	//end Entropy
 	
 }	//end DecisionTree class
+
