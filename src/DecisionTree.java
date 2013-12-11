@@ -50,12 +50,14 @@ public class DecisionTree extends SupervisedLearner {
 		
 		if(unanimousClassification >= 0)	{		// all instances have the same classification - return leaf node labeled with that class
 			root.classification = unanimousClassification;
+			root.setClassificationString();
 			root.type = "Leaf";
 			System.out.println("\nLeaf node classification: " + root.classification);
 			System.out.println("-------------------------------\n");
 		}
 		else if(attributesToSplitOn.size() == 0)	{	//return a leaf node labeled as the majority class
 			root.classification = labels.mostCommonValue(0);
+			root.setClassificationString();
 			root.type = "leaf";
 			System.out.println("\nLeaf node classification is majority class: " + root.classification);
 			System.out.println("-------------------------------\n");
@@ -64,6 +66,7 @@ public class DecisionTree extends SupervisedLearner {
 			// find where to split
 			int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn);
 			root.attribute = selectedAttribute;
+			root.setAttributeName();
 			System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
 			removeAttribute(attributesToSplitOn, selectedAttribute);
 			
@@ -80,8 +83,10 @@ public class DecisionTree extends SupervisedLearner {
 					DTNode child = induceTree(features_copy, labels_copy, deepCopyArrayList(attributesToSplitOn));	//give a deep copy of the arrayList to not change the original
 					if(child.isLeafNode())	{
 						child.attribute = selectedAttribute;
+						child.setAttributeName();
 					}
 					child.branchValue = value;
+					child.setBranchValueString(selectedAttribute);
 					root.addChild(child);
 				}
 			}
@@ -282,6 +287,13 @@ public class DecisionTree extends SupervisedLearner {
 		}
 		
 		/*
+		 * Sets the string for the attribute
+		 */
+		public void setAttributeName()	{
+			this.attributeName = features.attrName(attribute);
+		}
+		
+		/*
 		 * Prints the node and all of its children
 		 *
 		 *  tear-prod-rate = reduced: none
@@ -307,7 +319,6 @@ public class DecisionTree extends SupervisedLearner {
 			for(int i = 0; i < children.size(); i++)	{
 				branchValues.add((int)children.get(i).branchValue);
 			}
-			System.out.println("Children's Values: " + branchValues);
 			
 			if(branchValue < 0)	{	// is the root node
 				// just print children
@@ -332,42 +343,23 @@ public class DecisionTree extends SupervisedLearner {
 				}	//end for
 			}
 			else	{	//not the root node
-				String attributeName = features.attrName(attribute);
-				
-				//print self
-				out += features.attrName(attribute) + " = " + features.
-				
-				if(isLeafNode() == false)	{	//print children
+				if(isLeafNode() == false)	{
 					//print children
 					for(int i = 0; i < children.size(); i++)	{
-					
-						if(isLeafNode() == false)	{
-							// "print attributeName = attributeValue"
-		//					out += prefix + attributeName + " = " + 
-							// print children & values
+						out += prefix + attributeName + " = " + children.get(i).branchValueString;
+						System.out.println(prefix + attributeName + " = " + children.get(i).branchValueString + "\n");
+						
+						if(children.get(i).isLeafNode())	{	//add classification
+							out += " : " + children.get(i).classificationValue + "\n";
+						}
+						else	{
+							out += "\n" + children.get(i).toString(prefix + "| ");
 						}
 					}
 				}
 			}
 			
 			return out;
-//			if(!isLeafNode())	{
-//				String attributeName = features.attrName(attribute);
-//				
-//				for(int branch = 0; branch < children.size(); branch++)	{
-//					DTNode child = children.get(branch);
-//					int branchValueInt = (int)children.get(branch).branchValue;
-//					String branchValue = features.attrValue(attribute, branch);
-//					
-//					if(child.isLeafNode())	{
-//						toReturn += attributeName + " = " + branchValue + " : " + labels.attrValue(0, (int)child.classification) + "\n";
-//					}
-//					else	{
-//						toReturn += " |" + child.toString(); 
-//					}
-//					
-//				}
-//			}
 		}
 	}	//end DTNode class
 	
