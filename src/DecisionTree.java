@@ -323,21 +323,14 @@ public class DecisionTree extends SupervisedLearner {
 			if(branchValue < 0)	{	// is the root node
 				// just print children
 				for(int i = 0; i < children.size(); i++)	{
-					String parentAttributeName = features.attrName(attribute);
-					int parentAttributeNum = attribute;
-					int childAttributeNum = children.get(i).attribute;
-					String childAttributeName = features.attrName(childAttributeNum);
-					int branchValueToChildNum = branchValues.get(i);	//get branch value which corresponds with the child
-					String branchValueToChild = features.attrValue(parentAttributeNum, branchValueToChildNum);	//look in the parent's attr column to find the right branch values
-					
+
 					if(children.get(i).isLeafNode())	{
-						String childClassification = labels.attrValue(0, (int)children.get(i).classification);
-						out += childAttributeName + " = " + branchValueToChild + " : " + childClassification + "\n";  
-						System.out.println(childAttributeName + " = " + branchValueToChild + " : " + childClassification + "\n");
+						out += children.get(i).attributeName + " = " + children.get(i).branchValueString + " : " + children.get(i).classificationValue + "\n";
+						System.out.println(children.get(i).attributeName + " = " + children.get(i).branchValueString + " : " + children.get(i).classificationValue + "\n");
 					}
 					else	{
-						out += parentAttributeName + " = " + branchValueToChild + "\n";
-						System.out.println(parentAttributeName + " = " + branchValueToChild + "\n");
+						out += attributeName + " = " + children.get(i).branchValueString + "\n";
+						System.out.println(attributeName + " = " + children.get(i).branchValueString + "\n");
 						out += children.get(i).toString("| ");
 					}
 				}	//end for
@@ -362,6 +355,7 @@ public class DecisionTree extends SupervisedLearner {
 			return out;
 		}
 	}	//end DTNode class
+	
 	
 	/*
 	 * Never actually use this method - had to implement it for NeuralNet
