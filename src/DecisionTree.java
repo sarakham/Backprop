@@ -32,6 +32,7 @@ public class DecisionTree extends SupervisedLearner {
 		// build tree
 		DTNode root = induceTree(features, labels, attributesToSplitOn);
 		String tree = root.toString(null);
+		System.out.println("-------------");
 		System.out.println(tree);
 	}
 
@@ -103,7 +104,7 @@ public class DecisionTree extends SupervisedLearner {
 				if(left_child.isLeafNode())	{
 					left_child.attribute = selectedAttribute;
 				}
-				left_child.branchValue = mean;
+				left_child.branchValue = 0;
 				root.addChild(left_child);
 					
 				// copy the matrices & create a sub-matrix ABOVE MEAN
@@ -115,7 +116,7 @@ public class DecisionTree extends SupervisedLearner {
 				if(right_child.isLeafNode())	{
 					right_child.attribute = selectedAttribute;
 				}
-				right_child.branchValue = mean;
+				right_child.branchValue = 1;
 				root.addChild(right_child);
 			}
 		}
@@ -320,33 +321,72 @@ public class DecisionTree extends SupervisedLearner {
 				branchValues.add((int)children.get(i).branchValue);
 			}
 			
-			if(branchValue < 0)	{	// is the root node
-				// just print children
-				for(int i = 0; i < children.size(); i++)	{
-
-					if(children.get(i).isLeafNode())	{
-						out += children.get(i).attributeName + " = " + children.get(i).branchValueString + " : " + children.get(i).classificationValue + "\n";
-						System.out.println(children.get(i).attributeName + " = " + children.get(i).branchValueString + " : " + children.get(i).classificationValue + "\n");
-					}
-					else	{
-						out += attributeName + " = " + children.get(i).branchValueString + "\n";
-						System.out.println(attributeName + " = " + children.get(i).branchValueString + "\n");
-						out += children.get(i).toString("| ");
-					}
-				}	//end for
-			}
-			else	{	//not the root node
-				if(isLeafNode() == false)	{
-					//print children
+			if(isContinuous(features) == false)	{
+				if(branchValue < 0)	{	// is the root node
+					// just print children
 					for(int i = 0; i < children.size(); i++)	{
-						out += prefix + attributeName + " = " + children.get(i).branchValueString;
-						System.out.println(prefix + attributeName + " = " + children.get(i).branchValueString + "\n");
-						
-						if(children.get(i).isLeafNode())	{	//add classification
-							out += " : " + children.get(i).classificationValue + "\n";
+	
+						if(children.get(i).isLeafNode())	{
+							out += children.get(i).attributeName + " = " + children.get(i).branchValueString + " : " + children.get(i).classificationValue + "\n";
+	//						System.out.println(children.get(i).attributeName + " = " + children.get(i).branchValueString + " : " + children.get(i).classificationValue + "\n");
 						}
 						else	{
-							out += "\n" + children.get(i).toString(prefix + "| ");
+							out += attributeName + " = " + children.get(i).branchValueString + "\n";
+	//						System.out.println(attributeName + " = " + children.get(i).branchValueString + "\n");
+							out += children.get(i).toString("| ");
+						}
+					}	//end for
+				}
+				else	{	//not the root node
+					if(isLeafNode() == false)	{
+						//print children
+						for(int i = 0; i < children.size(); i++)	{
+							out += prefix + attributeName + " = " + children.get(i).branchValueString;
+	//						System.out.println(prefix + attributeName + " = " + children.get(i).branchValueString + "\n");
+							
+							if(children.get(i).isLeafNode())	{	//add classification
+								out += " : " + children.get(i).classificationValue + "\n";
+							}
+							else	{
+								out += "\n" + children.get(i).toString(prefix + "| ");
+							}
+						}
+					}
+				}
+			}
+			else	{	//continuous
+				if(branchValue < 0)	{	// is the root node
+					// just print children
+					for(int i = 0; i < children.size(); i++)	{
+	
+						if(children.get(i).isLeafNode())	{
+//							out += children.get(i).attributeName + " = " + children.get(i).branchValueString + " : " + children.get(i).classificationValue + "\n";
+							out += "Node: property = " + children.get(i).attributeName + " : " + children.get(i).classificationValue + "\n";
+							System.out.println("Node: property = " + children.get(i).attributeName + " : " + children.get(i).classificationValue + "\n");
+						}
+						else	{
+//							out += attributeName + " = " + children.get(i).branchValueString + "\n";
+							out += "Node: property = " + attributeName + "\n";
+							System.out.println("Node: property = " + attributeName + "\n");
+							out += children.get(i).toString("| ");
+						}
+					}	//end for
+				}
+				else	{	//not the root node
+					if(isLeafNode() == false)	{
+						//print children
+						for(int i = 0; i < children.size(); i++)	{
+//							out += prefix + attributeName + " = " + children.get(i).branchValueString;
+							out += prefix + "Node: property = " + attributeName;
+							System.out.println(prefix + "Node: property = " + attributeName);
+							
+							if(children.get(i).isLeafNode())	{	//add classification
+//								out += " : " + children.get(i).classificationValue + "\n";
+								out += " : " + children.get(i).classificationValue + "\n";
+							}
+							else	{
+								out += "\n" + children.get(i).toString(prefix + "| ");
+							}
 						}
 					}
 				}

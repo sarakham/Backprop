@@ -13,7 +13,7 @@ public class NeuralNet extends SupervisedLearner	{
 	ArrayList<Integer> targets;					//what the instance should have been classified
 	ArrayList<Integer> numHiddenNodesPerLayer;
 	int INPUT_LAYER_INDEX = 0;
-	int HIDDENLAYERCOUNT = 1;
+	int HIDDENLAYERCOUNT = 2;
 //	int NODESPERLAYER = 3;
 	double LEARNING_RATE = .3;
 	double MOMENTUM = 0.0;
@@ -27,7 +27,7 @@ public class NeuralNet extends SupervisedLearner	{
 		inputNodeValues = new ArrayList<Double>();
 		targets = new ArrayList<Integer>();
 		numHiddenNodesPerLayer = new ArrayList<Integer>();
-		numHiddenNodesPerLayer.add(2);
+		numHiddenNodesPerLayer.add(3);
 //		numHiddenNodesPerLayer.add(6);
 //		numHiddenNodesPerLayer.add(4);
 	}
