@@ -4,8 +4,10 @@ import java.util.HashSet;
 public class DecisionTree extends SupervisedLearner {
 
 	int NUM_ATTRIBUTES = 0;
-	String DATA_TYPE = "discrete";
+//	String DATA_TYPE = "discrete";
 //	String DATA_TYPE = "continuous";
+//	static String SPLITTING_CRITERIA = "information_gain";
+	static String SPLITTING_CRITERIA = "accuracy";
 	Matrix features_original;
 	Matrix labels_original;
 
@@ -28,6 +30,12 @@ public class DecisionTree extends SupervisedLearner {
 		for(int attribute = 0; attribute < NUM_ATTRIBUTES; attribute++)	{
 			attributesToSplitOn.add(attribute);
 		}
+		
+////		test accuracy
+//		double testAccuracy = Entropy.computeAccuracy(features, labels);
+//		System.out.println("test accuracy: " + testAccuracy);
+//		double[] result = new double[1];
+//		int it = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn, result);
 		
 		// build tree
 		DTNode root = induceTree(features, labels, attributesToSplitOn);
@@ -65,13 +73,18 @@ public class DecisionTree extends SupervisedLearner {
 		}
 		else	{
 			// find where to split
-			int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn);
+			String[] accuracyStillImproving = new String[1];
+			int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn, accuracyStillImproving);
 			root.attribute = selectedAttribute;
 			root.setAttributeName();
 			System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
 			removeAttribute(attributesToSplitOn, selectedAttribute);
 			
-			if(!isContinuous(features))	{
+			if(accuracyStillImproving[0] == "no")	{
+				//we are no longer improving accuracy and need to create a leaf node with the majority
+				root.classification = labels.mostCommonValue(0);
+			}
+			else if(!isContinuous(features))	{
 				// make a branch for each value of the selected attribute
 				double[] uniqueValues = features.getUniqueValuesArray(selectedAttribute);
 				for (double value : uniqueValues)	{
@@ -185,6 +198,26 @@ public class DecisionTree extends SupervisedLearner {
 	public void predict(double[] features, double[] labels) throws Exception {
 		//TODO auto-generated stub
 		
+	}
+	
+	/*
+	 * Returns true if all elements in an ArrayList<Double> are the same
+	 */
+	public static boolean checkIfElementsAreSame(ArrayList<Double> list)	{
+		
+		if(list.size() > 1)	{
+			double firstVal = list.get(0);
+			for(double d : list)	{
+				if (d != firstVal)	{	
+					return false;		
+				}
+			}
+			return true;
+		}
+		else	{
+			//list is empty or only has one element
+			return true;
+		}
 	}
 
 	/*
@@ -415,21 +448,70 @@ public class DecisionTree extends SupervisedLearner {
 	private static class Entropy	{
 		
 		/*
-		 * Returns the attribute from attributeList which gives the highest information gain
+		 * Returns the attribute from attributeList which gives the highest information gain or accuracy depending on what the splitting criteria are
 		 */
-		public static int getHighestInformationGain(Matrix features, Matrix labels, ArrayList<Integer> attributeList)	{
+		public static int getHighestInformationGain(Matrix features, Matrix labels, ArrayList<Integer> attributeList, String[] accuracyStillImproving)	{
 			
 			ArrayList<Double> informationGains = new ArrayList<Double>();
 			for(int attrColumn = 0; attrColumn < attributeList.size(); attrColumn++)	{
 				int attr = attributeList.get(attrColumn); 	//only use columns in the attributeList (prevents repeats)
 				double info_gain = 0.0;
-				if(isContinuous(features))	{
-					info_gain = computeInformationGainContinuous(features, labels, attr);
+				
+				if(SPLITTING_CRITERIA == "accuracy")	{
+					
+					System.out.println("Splitting on accuracy");
+					
+					if(isContinuous(features))	{
+						double accuracy = computeAccuracy(features, labels);
+						// data set below mean
+						Matrix features_below_mean = new Matrix(features);
+						Matrix labels_below_mean = new Matrix(labels);
+						// compute entropy & proportion
+						Matrix.filterMatrixByLessThanMeanValue(features_below_mean, labels_below_mean, attrColumn);
+						double proportion_below = (double)features_below_mean.rows() / (double)features.rows();
+						double accuracy_below = computeAccuracy(features_below_mean, labels_below_mean);
+						
+						// data set above mean
+						Matrix features_above_mean = new Matrix(features);
+						Matrix labels_above_mean = new Matrix(labels);
+						// compute entropy & proportion
+						Matrix.filterMatrixByGreaterThanMeanValue(features_above_mean, labels_above_mean, attrColumn);
+						double proportion_above = (double)features_above_mean.rows() / (double)features.rows();
+						double accuracy_above = computeAccuracy(features_above_mean, labels_above_mean);
+						
+						double information_gain = ((proportion_above * accuracy_above) * (proportion_below * accuracy_below)) - accuracy;
+						informationGains.add(attrColumn, information_gain);
+					}
+					else	{
+						double accuracy = computeAccuracy(features, labels);
+						//loop through the values and compute the accuracies of each 
+						double[] uniqueValues = features.getUniqueValuesArray(attrColumn);
+						double sum = 0.0;
+						for (double value : uniqueValues)	{
+							//copy the matrix
+							Matrix features_copy = new Matrix(features);
+							Matrix labels_copy = new Matrix(labels);
+							//filter by the value
+							Matrix.filterMatrixByAttributeValue(features_copy, labels_copy, attrColumn, value);
+							printMatrices(features_copy, labels_copy);
+							//compute the accuracy
+							double proportion = (double)features_copy.rows() / (double)features.rows();
+							double features_copy_accuracy = computeAccuracy(features_copy, labels_copy);
+							sum += proportion * features_copy_accuracy;
+						}
+						info_gain = sum - accuracy; 
+						informationGains.add(attrColumn, info_gain);
+					}
 				}
-				else {
-					info_gain = computeInformationGain(features, labels, attr);
+				else	{	//information gain
+					if(isContinuous(features))	{
+						info_gain = computeInformationGainContinuous(features, labels, attr);
+					}
+					else {
+						info_gain = computeInformationGain(features, labels, attr);
+					}
+					informationGains.add(attrColumn, info_gain);
 				}
-				informationGains.add(attrColumn, info_gain);
 			}
 			
 			//return the index of the highest info_gain
@@ -442,9 +524,36 @@ public class DecisionTree extends SupervisedLearner {
 				}
 			}
 			
-//			System.out.println("Highest information gain is column: " + index + " which corresponds with " + attributeList.get(index) + " in AttributeList");
+			//check if all the gains were equal (this is for accuracy to check whether it's still improving
+			if(SPLITTING_CRITERIA == "accuracy")	{
+				if(checkIfElementsAreSame(informationGains))	{
+					accuracyStillImproving[0] = "no";
+				}
+			}
+			
+			System.out.println("Highest information gain is column: " + index + " which corresponds with " + attributeList.get(index) + " in AttributeList");
+			System.out.println("InfoGains: " + informationGains);
 			return attributeList.get(index);
 		}
+		
+		/*
+		 * Computes the accuracy
+		 * 		Returns the number of instances that have the majority classification
+		 */
+		public static double computeAccuracy(Matrix features, Matrix labels)	{
+			
+			double majorityClassification = labels.mostCommonValue(0);
+			int instanceCount = 0;
+			
+			for(int i = 0; i < labels.rows(); i++)	{
+				if(labels.get(i, 0) == majorityClassification)	{
+					instanceCount++;
+				}
+			}
+			
+			return (double)instanceCount / (double)labels.rows();
+		}
+		
 		
 		/*
 		 * Calculates entropy

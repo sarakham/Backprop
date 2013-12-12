@@ -15,7 +15,7 @@ public class NeuralNet extends SupervisedLearner	{
 	int INPUT_LAYER_INDEX = 0;
 	int HIDDENLAYERCOUNT = 1;
 //	int NODESPERLAYER = 3;
-	double LEARNING_RATE = .5;
+	double LEARNING_RATE = 1;
 	double MOMENTUM = 0.0;
 	
 	/*
@@ -27,7 +27,7 @@ public class NeuralNet extends SupervisedLearner	{
 		inputNodeValues = new ArrayList<Double>();
 		targets = new ArrayList<Integer>();
 		numHiddenNodesPerLayer = new ArrayList<Integer>();
-		numHiddenNodesPerLayer.add(4);
+		numHiddenNodesPerLayer.add(2);
 //		numHiddenNodesPerLayer.add(6);
 //		numHiddenNodesPerLayer.add(4);
 	}
@@ -61,7 +61,7 @@ public class NeuralNet extends SupervisedLearner	{
 		double errorThisEpoch = 1;
 //		while((numEpoch < 1000) || (errorThisEpoch > .005))	{
 //			numEpoch++;
-		for(numEpoch = 0; numEpoch < 30; numEpoch++)	{
+		for(numEpoch = 0; numEpoch < 250; numEpoch++)	{
 			
 			ArrayList<Double> thisEpochErrors = new ArrayList<Double>();
 			ArrayList<Integer> instanceList = instanceOrder(features);
@@ -125,8 +125,8 @@ public class NeuralNet extends SupervisedLearner	{
 		}
 		
 		System.out.println("Finished Training with " + numEpoch);
-		writeArrayListToFile(trainingErrorsAcrossAllEpochs, "1_learn rate_allEpochErrors");
-		writeArrayListToFile(testAccuracyAcrossAllEpochs, "1_learn_rate_allEpochTestAccuracy");
+		writeArrayListToFile(trainingErrorsAcrossAllEpochs, "2node_allEpochErrors");
+		writeArrayListToFile(testAccuracyAcrossAllEpochs, "2node_allEpochTestAccuracy");
 	}
 	
 	
