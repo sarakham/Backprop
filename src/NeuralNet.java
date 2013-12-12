@@ -13,9 +13,9 @@ public class NeuralNet extends SupervisedLearner	{
 	ArrayList<Integer> targets;					//what the instance should have been classified
 	ArrayList<Integer> numHiddenNodesPerLayer;
 	int INPUT_LAYER_INDEX = 0;
-	int HIDDENLAYERCOUNT = 2;
+	int HIDDENLAYERCOUNT = 1;
 //	int NODESPERLAYER = 3;
-	double LEARNING_RATE = .3;
+	double LEARNING_RATE = .5;
 	double MOMENTUM = 0.0;
 	
 	/*
@@ -27,7 +27,7 @@ public class NeuralNet extends SupervisedLearner	{
 		inputNodeValues = new ArrayList<Double>();
 		targets = new ArrayList<Integer>();
 		numHiddenNodesPerLayer = new ArrayList<Integer>();
-		numHiddenNodesPerLayer.add(3);
+		numHiddenNodesPerLayer.add(4);
 //		numHiddenNodesPerLayer.add(6);
 //		numHiddenNodesPerLayer.add(4);
 	}
@@ -59,8 +59,9 @@ public class NeuralNet extends SupervisedLearner	{
 		ArrayList<Double> testAccuracyAcrossAllEpochs = new ArrayList<Double>();
 		int numEpoch = 0;
 		double errorThisEpoch = 1;
-		while((numEpoch < 1000) || (errorThisEpoch > .005))	{
-			numEpoch++;
+//		while((numEpoch < 1000) || (errorThisEpoch > .005))	{
+//			numEpoch++;
+		for(numEpoch = 0; numEpoch < 30; numEpoch++)	{
 			
 			ArrayList<Double> thisEpochErrors = new ArrayList<Double>();
 			ArrayList<Integer> instanceList = instanceOrder(features);
@@ -96,7 +97,7 @@ public class NeuralNet extends SupervisedLearner	{
 			}
 			
 			// print epoch number
-			if (numEpoch % 100 == 0)	{
+			if (numEpoch % 10 == 0)	{
 				System.out.println("Epoch " + numEpoch);
 			}
 			
@@ -114,6 +115,7 @@ public class NeuralNet extends SupervisedLearner	{
 					double accuracy = super.measureAccuracy(testFeatures, testLabels, null);
 //					System.out.println("Epoch: " + numEpoch + " accuracy: " + accuracy);
 					testAccuracyAcrossAllEpochs.add(accuracy);
+					
 				}
 				catch (Exception e) {
 					System.out.println("An exception was handled while computing the test accuracy");
@@ -123,8 +125,8 @@ public class NeuralNet extends SupervisedLearner	{
 		}
 		
 		System.out.println("Finished Training with " + numEpoch);
-		writeArrayListToFile(trainingErrorsAcrossAllEpochs, "allEpochErrors_2nodes");
-		writeArrayListToFile(testAccuracyAcrossAllEpochs, "allEpochTestAccuracy_2nodes");
+		writeArrayListToFile(trainingErrorsAcrossAllEpochs, "1_learn rate_allEpochErrors");
+		writeArrayListToFile(testAccuracyAcrossAllEpochs, "1_learn_rate_allEpochTestAccuracy");
 	}
 	
 	
