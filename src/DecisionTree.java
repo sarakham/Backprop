@@ -4,12 +4,13 @@ import java.util.HashSet;
 public class DecisionTree extends SupervisedLearner {
 
 	int NUM_ATTRIBUTES = 0;
-//	String DATA_TYPE = "discrete";
+	String DATA_TYPE = "discrete";
 //	String DATA_TYPE = "continuous";
 //	static String SPLITTING_CRITERIA = "information_gain";
 	static String SPLITTING_CRITERIA = "accuracy";
 	Matrix features_original;
 	Matrix labels_original;
+	DTNode rootNode;
 
 	/*
 	 * Constructor
@@ -31,17 +32,15 @@ public class DecisionTree extends SupervisedLearner {
 			attributesToSplitOn.add(attribute);
 		}
 		
-////		test accuracy
-//		double testAccuracy = Entropy.computeAccuracy(features, labels);
-//		System.out.println("test accuracy: " + testAccuracy);
-//		double[] result = new double[1];
-//		int it = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn, result);
+		//remove unkonwn values
+		printMatrices(features, labels);
+//		features.removeUnknowns();
 		
 		// build tree
-		DTNode root = induceTree(features, labels, attributesToSplitOn);
-		String tree = root.toString(null);
-		System.out.println("-------------");
-		System.out.println(tree);
+		rootNode = induceTree(features, labels, attributesToSplitOn);
+//		String tree = rootNode.toString(null);
+//		System.out.println("-------------");
+//		System.out.println(tree);
 	}
 
 	
@@ -49,8 +48,8 @@ public class DecisionTree extends SupervisedLearner {
 	 *  Create the tree
 	 */
 	public DTNode induceTree(Matrix features, Matrix labels, ArrayList<Integer> attributesToSplitOn)	{
-		System.out.println("--------------------\n Current Root Node"); printMatrices(features, labels);
-		System.out.println("attributeList: " + attributesToSplitOn);
+//		System.out.println("--------------------\n Current Root Node"); printMatrices(features, labels);
+//		System.out.println("attributeList: " + attributesToSplitOn);
 		
 		// Make node of the current tree
 		DTNode root = new DTNode(features, labels);
@@ -61,15 +60,15 @@ public class DecisionTree extends SupervisedLearner {
 			root.classification = unanimousClassification;
 			root.setClassificationString();
 			root.type = "Leaf";
-			System.out.println("\nLeaf node classification: " + root.classification);
-			System.out.println("-------------------------------\n");
+//			System.out.println("\nLeaf node classification: " + root.classification);
+//			System.out.println("-------------------------------\n");
 		}
 		else if(attributesToSplitOn.size() == 0)	{	//return a leaf node labeled as the majority class
 			root.classification = labels.mostCommonValue(0);
 			root.setClassificationString();
 			root.type = "leaf";
-			System.out.println("\nLeaf node classification is majority class: " + root.classification);
-			System.out.println("-------------------------------\n");
+//			System.out.println("\nLeaf node classification is majority class: " + root.classification);
+//			System.out.println("-------------------------------\n");
 		}
 		else	{
 			// find where to split
@@ -77,18 +76,22 @@ public class DecisionTree extends SupervisedLearner {
 			int selectedAttribute = Entropy.getHighestInformationGain(features, labels, attributesToSplitOn, accuracyStillImproving);
 			root.attribute = selectedAttribute;
 			root.setAttributeName();
-			System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
+//			System.out.println("selectedAttributeColumn: " + selectedAttribute + " (" + features.attrName(selectedAttribute) + ")  unanimousClassification: " + unanimousClassification);
 			removeAttribute(attributesToSplitOn, selectedAttribute);
 			
 			if(accuracyStillImproving[0] == "no")	{
 				//we are no longer improving accuracy and need to create a leaf node with the majority
 				root.classification = labels.mostCommonValue(0);
+				root.setClassificationString();
+				root.type = "Leaf";
+//				System.out.println("\nLeaf node classification: " + root.classification);
+//				System.out.println("-------------------------------\n");
 			}
-			else if(!isContinuous(features))	{
+			else if(isContinuous(features) == false)	{
 				// make a branch for each value of the selected attribute
 				double[] uniqueValues = features.getUniqueValuesArray(selectedAttribute);
 				for (double value : uniqueValues)	{
-					System.out.println("Branch value: " + value + " for attribute: " + selectedAttribute);
+//					System.out.println("Branch value: " + value + " for attribute: " + selectedAttribute);
 					// copy the matrices & create a sub-matrix
 					Matrix features_copy = new Matrix(features);
 					Matrix labels_copy = new Matrix(labels);
@@ -107,6 +110,7 @@ public class DecisionTree extends SupervisedLearner {
 			else	{
 				// branch for values below the mean and above the mean
 				double mean = features.columnMean(selectedAttribute);
+//				System.out.println("Mean: " + mean);
 				
 				// copy the matrices & create a sub-matrix BELOW MEAN
 				Matrix features_below_mean = new Matrix(features);
@@ -156,7 +160,7 @@ public class DecisionTree extends SupervisedLearner {
 	private void removeAttribute(ArrayList<Integer> attributesToSplitOn, int attribute)	{
 		
 		attributesToSplitOn.remove(new Integer(attribute));
-		System.out.println("After Removing: " + attributesToSplitOn);
+//		System.out.println("After Removing: " + attributesToSplitOn);
 	}
 	
 	/*
@@ -170,10 +174,10 @@ public class DecisionTree extends SupervisedLearner {
 			for(int j = 0; j < features.row(i).length; j++)	{
 				row += "  " + features.row(i)[j];
 			}
-			System.out.println(row + " => " + labels.row(i)[0]);
+//			System.out.println(row + " => " + labels.row(i)[0]);
 		}
 		
-		System.out.println("\n");
+//		System.out.println("\n");
 		
 		// prints the values
 		if(!isContinuous(features))	{
@@ -184,7 +188,7 @@ public class DecisionTree extends SupervisedLearner {
 					row += features.attrValue(j, value) + "\t";
 				}
 				int labelvalue = (int) labels.row(i)[0]; 
-				System.out.println(row + " => " + labels.attrValue(0, labelvalue));//labels.row(i)[0]);
+//				System.out.println(row + " => " + labels.attrValue(0, labelvalue));//labels.row(i)[0]);
 			}
 		}
 //		System.out.println("\n");
@@ -197,7 +201,45 @@ public class DecisionTree extends SupervisedLearner {
 	 */
 	public void predict(double[] features, double[] labels) throws Exception {
 		//TODO auto-generated stub
+		double classification = traverse(features, rootNode);
+		labels[0] = classification;
+	}
+	
+	/*
+	 * Traverses the tree to find the prediction value
+	 */
+	public double traverse(double[] features, DTNode cur)	{
 		
+		if(cur.isLeafNode())	{
+			return cur.classification; 
+		}
+		else	{
+			//determine which way to go
+			if(DATA_TYPE == "continuous")	{
+				// find the attribute value corresponding to the currentNode
+				double attrValue = features[cur.attribute];
+				//traverse down the right branch
+				double mean = cur.features.columnMean((int)attrValue);
+				if(features[(int)attrValue] < mean)	{
+					return traverse(features, cur.children.get(0));
+				}
+				else	{
+					return traverse(features, cur.children.get(1));
+				}
+			}
+			else	{	//discrete
+				// find the attribute value corresponding to the currentNode
+				double attrValue = features[cur.attribute];
+				// traverse the right branch 
+//				System.out.println("attrValue: " + attrValue);
+				if(cur.children.size() == 2){
+					return traverse(features, cur.children.get((int)attrValue));
+				}
+				else	{
+					return traverse(features, cur.children.get(0));
+				}
+			}
+		}
 	}
 	
 	/*
@@ -255,6 +297,18 @@ public class DecisionTree extends SupervisedLearner {
 		return false;
 	}
 
+	/*
+	 * Checks if all elements in the ArrayList are negative
+	 */
+	public static boolean checkIfAllNegative(ArrayList<Double> list)	{
+		
+		for(double d : list)	{
+			if (d >= 0)	{	
+				return false;		
+			}
+		}
+		return true;
+	}
 	
 	//---------------------------------------------------
 	/*
@@ -395,12 +449,12 @@ public class DecisionTree extends SupervisedLearner {
 						if(children.get(i).isLeafNode())	{
 //							out += children.get(i).attributeName + " = " + children.get(i).branchValueString + " : " + children.get(i).classificationValue + "\n";
 							out += "Node: property = " + children.get(i).attributeName + " : " + children.get(i).classificationValue + "\n";
-							System.out.println("Node: property = " + children.get(i).attributeName + " : " + children.get(i).classificationValue + "\n");
+//							System.out.println("Node: property = " + children.get(i).attributeName + " : " + children.get(i).classificationValue + "\n");
 						}
 						else	{
 //							out += attributeName + " = " + children.get(i).branchValueString + "\n";
 							out += "Node: property = " + attributeName + "\n";
-							System.out.println("Node: property = " + attributeName + "\n");
+//							System.out.println("Node: property = " + attributeName + "\n");
 							out += children.get(i).toString("| ");
 						}
 					}	//end for
@@ -411,7 +465,7 @@ public class DecisionTree extends SupervisedLearner {
 						for(int i = 0; i < children.size(); i++)	{
 //							out += prefix + attributeName + " = " + children.get(i).branchValueString;
 							out += prefix + "Node: property = " + attributeName;
-							System.out.println(prefix + "Node: property = " + attributeName);
+//							System.out.println(prefix + "Node: property = " + attributeName);
 							
 							if(children.get(i).isLeafNode())	{	//add classification
 //								out += " : " + children.get(i).classificationValue + "\n";
@@ -459,7 +513,7 @@ public class DecisionTree extends SupervisedLearner {
 				
 				if(SPLITTING_CRITERIA == "accuracy")	{
 					
-					System.out.println("Splitting on accuracy");
+//					System.out.println("Splitting on accuracy");
 					
 					if(isContinuous(features))	{
 						double accuracy = computeAccuracy(features, labels);
@@ -526,13 +580,13 @@ public class DecisionTree extends SupervisedLearner {
 			
 			//check if all the gains were equal (this is for accuracy to check whether it's still improving
 			if(SPLITTING_CRITERIA == "accuracy")	{
-				if(checkIfElementsAreSame(informationGains))	{
+				if(checkIfElementsAreSame(informationGains) || checkIfAllNegative(informationGains))	{
 					accuracyStillImproving[0] = "no";
 				}
 			}
 			
-			System.out.println("Highest information gain is column: " + index + " which corresponds with " + attributeList.get(index) + " in AttributeList");
-			System.out.println("InfoGains: " + informationGains);
+//			System.out.println("Highest information gain is column: " + index + " which corresponds with " + attributeList.get(index) + " in AttributeList");
+//			System.out.println("InfoGains: " + informationGains);
 			return attributeList.get(index);
 		}
 		
@@ -600,7 +654,7 @@ public class DecisionTree extends SupervisedLearner {
 			}
 			//calculate the information gain
 			double information_gain = features_entropy - sum;
-			System.out.println("Information gain for attrColumn #" + attrColumn + ": " + information_gain);
+//			System.out.println("Information gain for attrColumn #" + attrColumn + ": " + information_gain);
 			return information_gain;
 		}
 		

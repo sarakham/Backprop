@@ -16,7 +16,7 @@ public class NeuralNet extends SupervisedLearner	{
 	int HIDDENLAYERCOUNT = 1;
 //	int NODESPERLAYER = 3;
 	double LEARNING_RATE = 1;
-	double MOMENTUM = 0.0;
+	double MOMENTUM = .3;
 	
 	/*
 	 *  Constructor
@@ -27,7 +27,7 @@ public class NeuralNet extends SupervisedLearner	{
 		inputNodeValues = new ArrayList<Double>();
 		targets = new ArrayList<Integer>();
 		numHiddenNodesPerLayer = new ArrayList<Integer>();
-		numHiddenNodesPerLayer.add(2);
+		numHiddenNodesPerLayer.add(9);
 //		numHiddenNodesPerLayer.add(6);
 //		numHiddenNodesPerLayer.add(4);
 	}
@@ -125,8 +125,8 @@ public class NeuralNet extends SupervisedLearner	{
 		}
 		
 		System.out.println("Finished Training with " + numEpoch);
-		writeArrayListToFile(trainingErrorsAcrossAllEpochs, "2node_allEpochErrors");
-		writeArrayListToFile(testAccuracyAcrossAllEpochs, "2node_allEpochTestAccuracy");
+		writeArrayListToFile(trainingErrorsAcrossAllEpochs, "vowel_momentum_allEpochErrors");
+		writeArrayListToFile(testAccuracyAcrossAllEpochs, "vowel_momentum_allEpochTestAccuracy");
 	}
 	
 	

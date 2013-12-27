@@ -232,6 +232,17 @@ public class Matrix {
 	}
 	
 	
+//	/*
+//	 * Removes the unknown characters in the matrix
+//	 */
+//	public void removeUnknowns()	{
+////		for(int row = 0; row < rows(); row++)	{
+////			double[] curRow = row(row);
+////			System.out.println("row: " + row);
+////		}
+//		System.out.println("got here");
+//	}
+	
 	// Adds a copy of the specified portion of that matrix to this matrix
 	public void add(Matrix that, int rowStart, int colStart, int rowCount) throws Exception {
 		if(colStart + cols() > that.cols())
