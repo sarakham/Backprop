@@ -1,4 +1,0 @@
-Backprop
-========
-
-Neural Net Back
